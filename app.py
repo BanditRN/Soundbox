@@ -103,7 +103,7 @@ QScrollBar::add-page:vertical, QScrollBar::sub-:vertical {
     
     @staticmethod
     def get_frame_style() -> str:
-        return f"QFrame#mainFrame: {'{border: 2px solid '+ winaccent.accent_dark_mode + ' ; border-radius: 4px;}'}"
+        return f"QFrame#mainFrame: {'{border: 2px solid '+ winaccent.accent_dark_mode + ' ; border-radius: 4px; }'}"
     
     @staticmethod
     def get_button_style() -> str:
@@ -432,6 +432,7 @@ class SoundboardWindow(QMainWindow):
         """Create all UI widgets"""
         self.central_widget = QWidget()
         self.central_widget.setStyleSheet("background: transparent;")
+        
 
         # Media control buttons
         self._create_media_buttons()
@@ -490,9 +491,14 @@ class SoundboardWindow(QMainWindow):
             background-color: red;
             }""")
         self.close_btn.setFixedSize(30, 25)
-        self.maximize_btn = self._create_window_button("maximize.png", (30, 25))
-        self.minimize_btn = self._create_window_button("minimize.png", (30, 25))
-    
+        #self.maximize_btn = self._create_window_button("maximize.png", (30, 25))
+        #self.minimize_btn = self._create_window_button("minimize.png", (30, 25))
+        self.minimize_btn = QPushButton('_')
+        self.minimize_btn.setStyleSheet("""
+            QPushButton{background-color: transparent; color: black; border: none; font-size: 14px; font-weight: bold;}
+                                        QPushButton:hover:!pressed{background-color: grey;}
+            """)
+        self.minimize_btn.setFixedSize(30, 25)
     def _create_audio_device_widgets(self) -> None:
         """Create audio device selection widgets"""
         # Output devices
@@ -519,10 +525,10 @@ class SoundboardWindow(QMainWindow):
         
         # Labels
         self.device_label = self._create_label("Select your audio Output device", 12)
-        self.device_label.setStyleSheet("border: transparent;")
+        
         
         self.input_device_label = self._create_label("Select your audio Input device", 12)
-        self.input_device_label.setStyleSheet("border: transparent;")
+        
     
     def _create_sound_list_widget(self) -> None:
         """Create sound list view"""
@@ -579,7 +585,7 @@ class SoundboardWindow(QMainWindow):
         button.setIcon(QIcon(ResourceManager.get_resource_path(icon_file)))
         if icon_size:
             button.setIconSize(QSize(*icon_size))
-        button.setStyleSheet("background-color: transparent;border: 0px")
+        button.setStyleSheet("QPushbutton{background-color: transparent;border: 0px;}")
         button.setFlat(True)
         button.setCursor(Qt.PointingHandCursor)
         button.setFixedSize(*size)
@@ -592,7 +598,7 @@ class SoundboardWindow(QMainWindow):
         button.setIcon(QIcon(ResourceManager.get_resource_path(icon_file)))
         if icon_size:
             button.setIconSize(QSize(*icon_size))
-        button.setStyleSheet("background-color: transparent;border: 0px;")
+        button.setStyleSheet("QPushbutton{background-color: transparent;border: 0px;} QPushbutton:hover:!clicked{background-color: "+ winaccent.accent_dark_mode +"; border-radius: 4px;}")
         button.setFlat(True)
         
         button.setFixedSize(*size)
@@ -606,7 +612,7 @@ class SoundboardWindow(QMainWindow):
         font = QFont()
         font.setPointSize(font_size)
         label.setFont(font)
-        label.setStyleSheet("padding-bottom: 5px; border: transparent;")
+        label.setStyleSheet("padding-bottom: 5px; border: transparent; background: transparent; color: white;")
         return label
     
     def _create_volume_slider(self, env_var: str) -> QSlider:
@@ -616,22 +622,27 @@ class SoundboardWindow(QMainWindow):
         slider.setMaximum(100)
         slider.setMinimum(0)
         slider.setValue(int(self.settings_manager.get(env_var)))
-        slider.setStyleSheet("border: 0px")
+        slider.setStyleSheet("border: 0px;background: transparent;")
         return slider
     
     def _setup_layouts(self) -> None:
         """Setup widget layouts"""
         # Main layout
+        
         main_layout = QVBoxLayout(self.central_widget)
         main_layout.setContentsMargins(0,0,0,0)
+        for widget in self.central_widget.children():
+            if isinstance(widget, QLabel) or isinstance(widget, QPushButton):
+                widget.setStyleSheet("background: transparent;")
         
         # Create frame
         
-        frame = QFrame()
-        frame.setFrameShape(QFrame.Shape.Box)
-        frame.setFrameShadow(QFrame.Shadow.Plain)
-        frame.setObjectName("mainFrame")
-        frame.setStyleSheet(StyleSheets.get_frame_style())
+        self.frame = QFrame(self.central_widget)
+        self.frame.setFrameShape(QFrame.Shape.Box)
+        self.frame.setFrameShadow(QFrame.Shadow.Plain)
+        self.frame.setObjectName("mainFrame")
+        self.frame.setStyleSheet(StyleSheets.get_frame_style())
+        self.frame.setLayout(main_layout)
         
         #  Title bar layout
         title_bar = QHBoxLayout()
@@ -639,6 +650,7 @@ class SoundboardWindow(QMainWindow):
         title_bar.setSpacing(0)
         title_text = QLabel("SoundBox", textFormat=Qt.PlainText)
         title_text.setFont(QFont("Arial", 16, QFont.Bold))
+        title_text.setStyleSheet("color: white; border: None;background: transparent;")
         title_bar.addWidget(title_text, alignment=Qt.AlignLeft)
         title_bar.addStretch()
         title_bar.addWidget(self.minimize_btn, alignment=Qt.AlignRight)
@@ -654,7 +666,7 @@ class SoundboardWindow(QMainWindow):
         v_layout.setSpacing(10)
         main_layout.addLayout(v_layout)
 
-        #main_layout.addWidget(frame)
+        
 
         # Control buttons layout
         controls_layout = QHBoxLayout()
@@ -694,7 +706,7 @@ class SoundboardWindow(QMainWindow):
         v_layout.addLayout(bottom_layout)
         v_layout.addWidget(self.select_folder_btn)
         
-        self.setCentralWidget(self.central_widget)
+        self.setCentralWidget(self.frame)
     
     def _connect_signals(self) -> None:
         """Connect widget signals to slots"""
@@ -704,7 +716,7 @@ class SoundboardWindow(QMainWindow):
         
         # Window controls
         self.close_btn.clicked.connect(self.close)
-        self.maximize_btn.clicked.connect(self._toggle_maximize)
+        #self.maximize_btn.clicked.connect(self._toggle_maximize)
         self.minimize_btn.clicked.connect(self.showNormal)
         self.minimize_btn.clicked.connect(self.showMinimized)
         
