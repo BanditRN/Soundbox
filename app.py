@@ -495,7 +495,7 @@ class SoundboardWindow(QMainWindow):
         #self.minimize_btn = self._create_window_button("minimize.png", (30, 25))
         self.minimize_btn = QPushButton('_')
         self.minimize_btn.setStyleSheet("""
-            QPushButton{background-color: transparent; color: black; border: none; font-size: 14px; font-weight: bold;}
+            QPushButton{text-align: top; background-color: transparent; color: black; border: none; font-size: 14px; font-weight: bold;}
                                         QPushButton:hover:!pressed{background-color: grey;}
             """)
         self.minimize_btn.setFixedSize(30, 25)
