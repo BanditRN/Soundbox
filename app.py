@@ -560,7 +560,7 @@ class SoundboardWindow(QMainWindow):
         # Now playing
         self.now_playing = QLabel("Now Playing: None")
         self.now_playing.setFont(QFont("Arial", 12))
-        self.now_playing.setStyleSheet("border: none;")
+        self.now_playing.setStyleSheet("border: none;background: transparent;")
         
         # Select folder button
         self.select_folder_btn = LoadingButton("Select Folder")
@@ -870,7 +870,7 @@ class SoundboardWindow(QMainWindow):
         """Handle media player state changes"""
         if state == QMediaPlayer.PlaybackState.StoppedState:
             self.now_playing.setText("Now Playing: None")
-            self.now_playing.setStyleSheet("color: white; border: None")
+            self.now_playing.setStyleSheet("color: white; border: None;background: transparent;")
             self.play_button.setIcon(QIcon(ResourceManager.get_resource_path("play.png")))
         elif state == QMediaPlayer.PlaybackState.PausedState:
             self.play_button.setIcon(QIcon(ResourceManager.get_resource_path("play.png")))
@@ -899,7 +899,7 @@ class SoundboardWindow(QMainWindow):
                 sound_name = self.model.data(selected_item, Qt.DisplayRole)
                 if self._play_sound_by_name(sound_name):
                     self.now_playing.setText(f"Now Playing: {sound_name}")
-                    self.now_playing.setStyleSheet("color: green; border: None")
+                    self.now_playing.setStyleSheet("color: green; border: None;background: transparent;")
                 else:
                     QMessageBox.warning(self, "Error", "Sound file not found.")
             else:
