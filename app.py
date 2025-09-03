@@ -473,7 +473,23 @@ class SoundboardWindow(QMainWindow):
     
     def _create_window_controls(self) -> None:
         """Create window control buttons"""
-        self.close_btn = self._create_window_button("close.png", (30, 25))
+        #self.close_btn = self._create_window_button("close.png", (30, 25))
+        self.close_btn = QPushButton('X')
+        #self.close_btn.setStyleSheet("background-color: transparent; color: white; border: none; font-size: 14px; hover {background-color: red;}")
+        self.close_btn.setStyleSheet("""
+            QPushButton
+            {
+            background-color: transparent;
+            color: black; 
+            border: none; 
+            font-size: 14px;
+            font-weight: bold;
+            }
+            QPushButton:hover:!pressed
+            {
+            background-color: red;
+            }""")
+        self.close_btn.setFixedSize(30, 25)
         self.maximize_btn = self._create_window_button("maximize.png", (30, 25))
         self.minimize_btn = self._create_window_button("minimize.png", (30, 25))
     
@@ -576,7 +592,7 @@ class SoundboardWindow(QMainWindow):
         button.setIcon(QIcon(ResourceManager.get_resource_path(icon_file)))
         if icon_size:
             button.setIconSize(QSize(*icon_size))
-        button.setStyleSheet("background-color: transparent;border: 0px")
+        button.setStyleSheet("background-color: transparent;border: 0px;")
         button.setFlat(True)
         
         button.setFixedSize(*size)
@@ -619,16 +635,18 @@ class SoundboardWindow(QMainWindow):
         
         #  Title bar layout
         title_bar = QHBoxLayout()
-        main_layout.addLayout(title_bar)
+        
         title_bar.setSpacing(0)
         title_text = QLabel("SoundBox", textFormat=Qt.PlainText)
         title_text.setFont(QFont("Arial", 16, QFont.Bold))
         title_bar.addWidget(title_text, alignment=Qt.AlignLeft)
+        title_bar.addStretch()
         title_bar.addWidget(self.minimize_btn, alignment=Qt.AlignRight)
-        title_bar.addWidget(self.maximize_btn, alignment=Qt.AlignRight)
+        #title_bar.addWidget(self.maximize_btn, alignment=Qt.AlignRight)
         title_bar.addWidget(self.close_btn, alignment=Qt.AlignRight)
-        title_bar.setContentsMargins(10,10,10,0)
+        title_bar.setContentsMargins(10,10,10,10)
 
+        main_layout.addLayout(title_bar)
 
         # Main vertical layout
         v_layout = QVBoxLayout()
@@ -636,7 +654,7 @@ class SoundboardWindow(QMainWindow):
         v_layout.setSpacing(10)
         main_layout.addLayout(v_layout)
 
-        main_layout.addWidget(frame)
+        #main_layout.addWidget(frame)
 
         # Control buttons layout
         controls_layout = QHBoxLayout()
@@ -852,11 +870,11 @@ class SoundboardWindow(QMainWindow):
         if current_state & Qt.WindowMaximized:
             self.showNormal()
             self.overrideWindowState(Qt.WindowNoState)
-            self.maximize_btn.setIcon(QIcon(ResourceManager.get_resource_path("max.svg")))
+            #self.maximize_btn.setIcon(QIcon(ResourceManager.get_resource_path("maximize.png")))
         else:
             self.showMaximized()
             self.overrideWindowState(Qt.WindowMaximized)
-            self.maximize_btn.setIcon(QIcon(ResourceManager.get_resource_path("normal.svg")))
+            #self.maximize_btn.setIcon(QIcon(ResourceManager.get_resource_path("normal.svg")))
             
     # Public methods for sound playback
     def play_sound(self) -> None:
@@ -942,7 +960,7 @@ class SoundboardApplication:
     
     def _setup_application(self) -> None:
         """Setup application properties"""
-        self.app.setStyle("Fusion")
+        #self.app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
         self.app.setApplicationName("SoundBox by BanditRN")
         self.app.setApplicationVersion("1.0.0")
         self.app.setWindowIcon(QIcon(ResourceManager.get_resource_path("window_icon.png")))
