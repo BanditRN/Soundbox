@@ -650,13 +650,13 @@ class SoundboardWindow(QMainWindow):
         title_bar.setSpacing(0)
         title_text = QLabel("SoundBox", textFormat=Qt.PlainText)
         title_text.setFont(QFont("Arial", 16, QFont.Bold))
-        title_text.setStyleSheet("color: white; border: None;background: transparent;")
+        title_text.setStyleSheet("color: white; border: None;background: transparent;padding-top: 5px;")
         title_bar.addWidget(title_text, alignment=Qt.AlignLeft)
         title_bar.addStretch()
         title_bar.addWidget(self.minimize_btn, alignment=Qt.AlignRight)
         #title_bar.addWidget(self.maximize_btn, alignment=Qt.AlignRight)
         title_bar.addWidget(self.close_btn, alignment=Qt.AlignRight)
-        title_bar.setContentsMargins(10,10,10,10)
+        title_bar.setContentsMargins(10,0,0,10)
 
         main_layout.addLayout(title_bar)
 
