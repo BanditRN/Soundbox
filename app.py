@@ -254,15 +254,16 @@ class AudioManager:
             return []
         
         try:
-            sound_files = []
+            sound_files_set = set()
             for file in os.listdir(directory):
                 if file.endswith(Config.SUPPORTED_FORMATS):
                     full_path = os.path.join(directory, file)
                     if os.path.exists(full_path):
                         # Remove any of the supported extensions
                         name = os.path.splitext(file)[0]
-                        sound_files.append(name)
+                        sound_files_set.add(name)
             
+            sound_files = list(sound_files_set) # Convert set to list for sorting
             # Sort by modification time, newest first
             sound_files.sort(key=lambda x: max(
                 [os.path.getmtime(os.path.join(directory, x + ext)) 
