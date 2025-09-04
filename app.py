@@ -21,8 +21,10 @@ import winaccent
 global pressed_key
 class Config:
     """Configuration constants and file management"""
-    KEYBINDS_FILE = 'keybinds.json'
-    SETTINGS_FILE = 'settings.json'
+    if not os.path.exists(os.getenv('APPDATA')+'\\Soundbox') :
+        os.mkdir(os.getenv('APPDATA')+'\\Soundbox')
+    KEYBINDS_FILE = os.getenv('APPDATA') + '\\Soundbox\\keybinds.json'
+    SETTINGS_FILE = os.getenv('APPDATA') + '\\Soundbox\\settings.json'
     
     DEFAULT_SETTINGS = {
         "Directory": "",
