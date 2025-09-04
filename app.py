@@ -17,14 +17,12 @@ from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput, QMediaDevices
 from pyqt_loading_button import LoadingButton, AnimationType
 import winaccent
 
+
 global pressed_key
 class Config:
     """Configuration constants and file management"""
-    if not os.path.exists(os.getenv('APPDATA')+'\Soundbox') :
-        os.mkdir(os.getenv('APPDATA')+'\Soundbox')
-    KEYBINDS_FILE = os.getenv('APPDATA') + '\Soundbox\keybinds.json'
-    SETTINGS_FILE = os.getenv('APPDATA') + '\Soundbox\settings.json'
-
+    KEYBINDS_FILE = 'keybinds.json'
+    SETTINGS_FILE = 'settings.json'
     
     DEFAULT_SETTINGS = {
         "Directory": "",
@@ -43,13 +41,13 @@ class StyleSheets:
     
     @staticmethod
     def get_scrollbar_style() -> str:
-        return """
+        return """ 
+
 QScrollBar:vertical {
+    background-color: transparent;
     border: transparent;
     background: transparent;
-    width: 15px;
-    margin: 0 0 0 0; /* Space for buttons at top and bottom */
-    
+    width: 10px;  
 }
 
 QScrollBar::handle:vertical {
@@ -58,31 +56,26 @@ QScrollBar::handle:vertical {
     border-radius: 5px;
 }
 
-QScrollBar::add-line:vertical {
-    border: transparent;
-    background: transparent;
-    height: 20px;
+QScrollBar::add-line {
+    border: none;
+    background: none;
+    height: 0px;
     subcontrol-position: bottom;
     subcontrol-origin: margin;
 }
 
-QScrollBar::sub-line:vertical {
-    border: transparent;
-    background: transparent;
-    height: 20px;
+QScrollBar::sub-line {
+    border: none;
+    background: none;
+    height: 0px;
     subcontrol-position: top;
     subcontrol-origin: margin;
 }
 
-QScrollBar::add-page:vertical, QScrollBar::sub-:vertical {
-    background: none; /* No background for the page area */
+QScrollBar::add-page,
+QScrollBar::sub-page {
+    background: none ;
 }
-        """
-    
-    @staticmethod
-    def get_listview_style() -> str:
-        return """
-        
         """
     
     @staticmethod
@@ -143,7 +136,7 @@ class SettingsManager:
         """Set a setting value and save"""
         self.settings[key] = value
         self._save_settings(self.settings)
-    
+
     def update_environment_variables(self) -> None:
         """Update environment variables from settings"""
         env_mappings = {
@@ -403,7 +396,12 @@ class SoundboardWindow(QMainWindow):
                             color: white;
                            }
                            QListView{
+                           background: transparent;
+                            padding-right: 2px;
+                            padding-top: 2px;
+                            padding-bottom: 2px;
                             color: white;
+
                             }
                            """)
         
@@ -589,8 +587,9 @@ class SoundboardWindow(QMainWindow):
         self.list_view.setWrapping(False)
         self.list_view.setIconSize(QSize(100, 40))
         self.list_view.setFont(QFont("Arial", 12))
-        self.list_view.setStyleSheet(StyleSheets.get_listview_style())
         self.list_view.setStyleSheet(StyleSheets.get_scrollbar_style())
+        self.list_view.setAutoFillBackground(True)
+        self.list_view.viewport().setAutoFillBackground(True)
         
         # Set up delegate
         self.hover_delegate = HoverDelegate(self)
@@ -605,7 +604,8 @@ class SoundboardWindow(QMainWindow):
         self.now_playing.setStyleSheet("border: none;background: transparent;")
         
         # Select folder button
-        self.select_folder_btn = LoadingButton("Select Folder")
+        self.select_folder_btn = LoadingButton(self)
+        self.select_folder_btn.setText("Select Sound Folder")
         self.select_folder_btn.setAnimationType(AnimationType.Circle)
         self.select_folder_btn.setAnimationSpeed(2000)
         self.select_folder_btn.setAnimationColor(QtGui.QColor(0, 0, 0))
@@ -776,7 +776,8 @@ class SoundboardWindow(QMainWindow):
         self.hover_delegate.buttonClicked.connect(self._on_keybind_button_clicked)
         
         # Other
-        self.select_folder_btn.clicked.connect(self._select_folder)
+        self.select_folder_btn.setAction(lambda: QMetaObject.invokeMethod(
+            self, "_select_folder", Qt.QueuedConnection))
         self.dialog.accepted.connect(self._set_hotkey)
         self.dialog.finished.connect(self.unhook_keybind)
 
@@ -841,10 +842,11 @@ class SoundboardWindow(QMainWindow):
         device_name = self.audio_input_devices.currentText()
         self.audio_manager.setup_audio_input(device_name)
         self.settings_manager.set("DefaultInput", device_name)
-    
+    @Slot()
     def _select_folder(self) -> None:
         """Select sound folder"""
         self.select_folder_btn.isRunning = True
+        self.select_folder_btn.update()
         selected_directory = QFileDialog.getExistingDirectory(
             self, "Select Audio Directory")
         
@@ -856,8 +858,9 @@ class SoundboardWindow(QMainWindow):
             self.keybind_manager.save_keybinds()
             self._load_sounds()
             self.keybind_manager.load_keybinds()
-        
         self.select_folder_btn.isRunning = False
+        self.select_folder_btn.update()
+        
     
     @Slot(QModelIndex)
     def _on_keybind_button_clicked(self, index: QModelIndex) -> None:
