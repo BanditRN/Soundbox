@@ -45,7 +45,8 @@ QScrollBar:vertical {
     border: transparent;
     background: transparent;
     width: 15px;
-    margin: 22px 0 22px 0; /* Space for buttons at top and bottom */
+    margin: 0 0 0 0; /* Space for buttons at top and bottom */
+    
 }
 
 QScrollBar::handle:vertical {
@@ -78,32 +79,12 @@ QScrollBar::add-page:vertical, QScrollBar::sub-:vertical {
     @staticmethod
     def get_listview_style() -> str:
         return """
-        border: 2px solid blue; 
-        background-color: transparent;
-        QTableView {
-            background-color: #f0f0f0;
-            gridline-color: #cccccc;
-            selection-background-color: #aaddff;
-            size-adjust-policy: QAbstractScrollArea.AdjustToContents;
-        }
-        QHeaderView::section {
-            background-color: #e0e0e0;
-            padding: 4px;
-            border: 1px solid #c0c0c0;
-        }
-        QTableView::item:selected {
-            color: white;
-            background-color: blue;
-        }
-        QTableView::item {
-            font-size: 20px;
-            size: 20px;
-        }
+        
         """
     
     @staticmethod
     def get_frame_style() -> str:
-        return f"QFrame#mainFrame: {'{border: 2px solid '+ winaccent.accent_dark_mode + ' ; border-radius: 4px; }'}"
+        return f"QFrame {'{border: 1px solid '+ winaccent.accent_dark_1 + ' ; border-radius: 10px;}'}"
     
     @staticmethod
     def get_button_style() -> str:
@@ -366,8 +347,53 @@ class SoundboardWindow(QMainWindow):
         self._connect_signals()
         self._initialize_audio()
         self._load_sounds()
-        #self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setStyleSheet(f"background: qlineargradient(x1:0 y1:0, x2:1 y2:1, stop:0 #051c2a stop:1 #44315f);")
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        
+        self.setStyleSheet("""
+                           QWidget{
+                           background: qlineargradient(x1:0 y1:0, x2:1 y2:1, stop:0 #051c2a stop:1 #44315f);
+                           color: transparent;
+                           border-radius: 5px;
+                           }
+                           QPushButton{
+                           background: transparent;
+                           }
+                           QPushButton:hover:!pressed{
+                           background-color: #363637;
+                           }
+                           QComboBox#audio_devices, QComboBox#audio_input_devices{
+                           color: white;
+                           background: radial-gradient(circle,rgba(5, 4, 4, 1) 59%, rgba(89, 89, 89, 0.66) 83%);
+                           border: 1px solid """+ winaccent.accent_dark_1 +""";
+                           height: 18px;
+                           }
+                           QComboBox#audio_devices QListView, QComboBox#audio_input_devices QListView
+                           {
+                           border: 0px;
+                           color: white;
+                           }
+                           QComboBox#audio_devices::drop-down:button, QComboBox#audio_input_devices::drop-down:button{
+                           background: transparent;
+                            border: 0px;
+                           }
+                           QComboBox#audio_devices::down-arrow, QComboBox#audio_input_devices::down-arrow{
+                           image: url("""+ ResourceManager.get_resource_path("down.png").replace("\\","/") +""");
+                           width: 12px;
+                           height: 12px;
+                           margin-right: 15px;
+                           }
+                           QLabel
+                           {
+                            background: transparent;
+                            color: white;
+                           }
+                           QListView{
+                            color: white;
+                            }
+                           """)
+        
+
         self.minimize_animation = None
         self.keybind_manager.load_keybinds()
         
@@ -431,8 +457,7 @@ class SoundboardWindow(QMainWindow):
     def _create_widgets(self) -> None:
         """Create all UI widgets"""
         self.central_widget = QWidget()
-        self.central_widget.setStyleSheet("background: transparent;")
-        
+        self.central_widget.setObjectName("centralwidget")
 
         # Media control buttons
         self._create_media_buttons()
@@ -485,6 +510,7 @@ class SoundboardWindow(QMainWindow):
             border: none; 
             font-size: 14px;
             font-weight: bold;
+            
             }
             QPushButton:hover:!pressed
             {
@@ -503,22 +529,24 @@ class SoundboardWindow(QMainWindow):
         """Create audio device selection widgets"""
         # Output devices
         self.audio_devices = QComboBox()
-        self.audio_devices.setStyleSheet("""QComboBox QListView
-{
+        self.audio_devices.setObjectName("audio_devices")
+#         self.audio_devices.setStyleSheet("""QComboBox QListView
+# {
     
-	background: radial-gradient(circle,rgba(5, 4, 4, 1) 59%, rgba(89, 89, 89, 0.66) 83%);
-}""")
+# 	background: radial-gradient(circle,rgba(5, 4, 4, 1) 59%, rgba(89, 89, 89, 0.66) 83%);
+# }""")
         devices = [dev.description() for dev in self.audio_manager.get_audio_output_devices()]
         self.audio_devices.addItems(devices)
         self.audio_devices.setCurrentText(self.settings_manager.get("DefaultOutput", ""))
         
         # Input devices
         self.audio_input_devices = QComboBox()
-        self.audio_input_devices.setStyleSheet("""QComboBox QListView
-{
+        self.audio_input_devices.setObjectName("audio_input_devices")
+#         self.audio_input_devices.setStyleSheet("""QComboBox QListView
+# {
     
-	background: radial-gradient(circle,rgba(5, 4, 4, 1) 59%, rgba(89, 89, 89, 0.66) 83%);
-}""")
+# 	background: radial-gradient(circle,rgba(5, 4, 4, 1) 59%, rgba(89, 89, 89, 0.66) 83%);
+# }""")
         input_devices = [dev.description() for dev in self.audio_manager.get_audio_input_devices()]
         self.audio_input_devices.addItems(input_devices)
         self.audio_input_devices.setCurrentText(self.settings_manager.get("DefaultInput", ""))
@@ -987,6 +1015,7 @@ def main():
     """Main entry point"""
     try:
         app = SoundboardApplication()
+
         sys.exit(app.run())
     except Exception as e:
         print(f"Application error: {e}")

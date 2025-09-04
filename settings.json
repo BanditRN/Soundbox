@@ -1,7 +1,7 @@
 {
     "Directory": "",
-    "DefaultOutput": "CABLE In 16ch (VB-Audio Virtual Cable)",
-    "DefaultInput": "CABLE In 16ch (VB-Audio Virtual Cable)",
+    "DefaultOutput": "Speakers (Realtek(R) Audio)",
+    "DefaultInput": "CABLE Input (VB-Audio Virtual Cable)",
     "VolumeOutput": 50,
     "VolumeInput": 49
 }

@@ -8,4 +8,6 @@ The app will generate 2 files on first start: <br>
 <li>Settings.json</li>
 <li>Keybinds.json</li>
 </ul><br>
+Key software for routing audio is [VB-Audio Virtual cable](https://vb-audio.com/Cable/)
+Default Key for stopping playback at anytime for both input and output devices is "Backspace"
 If for any reason the app won't start just delete those 2 files and relaunch the app
