@@ -540,6 +540,8 @@ class SoundboardWindow(QMainWindow):
                                         QPushButton:hover:!pressed{background-color: grey;}
             """)
         self.minimize_btn.setFixedSize(30, 25)
+        self.minimize_btn.setFocusPolicy(Qt.NoFocus)
+        self.close_btn.setFocusPolicy(Qt.NoFocus)
     def _create_audio_device_widgets(self) -> None:
         """Create audio device selection widgets"""
         # Output devices
