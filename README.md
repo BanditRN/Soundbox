@@ -14,7 +14,7 @@ SoundBox is a feature-rich soundboard application built with Python and PySide6,
 
 ## Supported Formats:
 
-Currently, SoundBox primarily supports `.mp3` audio files.
+Currently, SoundBox primarily supports `.mp3` `.wav` `.ogg` `.flac` audio files.
 
 ## Installation & Setup:
 
