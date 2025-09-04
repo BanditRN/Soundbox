@@ -1,0 +1,1 @@
+2025-09-04 23:03:37,117 - ERROR - Invalid keybind entered for 'a-german-painter's-fav-remix-made-with-Voicemod': 'page up+\+en' - ("Key 'en' is not mapped to any known key.", ValueError("Key name 'en' is not mapped to any known key."))
