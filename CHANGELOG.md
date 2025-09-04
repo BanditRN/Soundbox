@@ -8,3 +8,7 @@
 
 ### Changed
 - Updated README.md with detailed information about features, installation, usage, and configuration.
+
+### Improved
+- Keybind input validation: Implemented robust validation for keybind strings using `keyboard.parse_hotkey()` to prevent invalid key combinations.
+- Keybind input capture: Removed problematic `keyboard.send('backspace')` and added validation for individual keys during keybind setting, leading to cleaner input.
