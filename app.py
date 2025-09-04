@@ -32,7 +32,7 @@ class Config:
     }
     
     WINDOW_SIZE = (800, 600)
-    SUPPORTED_FORMATS = ('.mp3',)
+    SUPPORTED_FORMATS = ('.mp3', '.wav', '.ogg', '.flac')
 
 
 class StyleSheets:
@@ -259,12 +259,16 @@ class AudioManager:
                 if file.endswith(Config.SUPPORTED_FORMATS):
                     full_path = os.path.join(directory, file)
                     if os.path.exists(full_path):
-                        name = file.replace(".mp3", "")
+                        # Remove any of the supported extensions
+                        name = os.path.splitext(file)[0]
                         sound_files.append(name)
             
             # Sort by modification time, newest first
-            sound_files.sort(key=lambda x: os.path.getmtime(
-                os.path.join(directory, x + ".mp3")), reverse=True)
+            sound_files.sort(key=lambda x: max(
+                [os.path.getmtime(os.path.join(directory, x + ext)) 
+                 for ext in Config.SUPPORTED_FORMATS if os.path.exists(os.path.join(directory, x + ext))]
+            ) if any(os.path.exists(os.path.join(directory, x + ext)) for ext in Config.SUPPORTED_FORMATS) else 0, 
+            reverse=True)
             return sound_files
         except Exception:
             return ["NO MUSIC WAS LOADED"]
@@ -275,9 +279,15 @@ class AudioManager:
         if not self.audio_output or not self.audio_soundboard:
             return False
         
-        sound_path = os.path.join(os.environ.get("SOUNDBOARD_DIR", ""), sound_name + ".mp3")
-        
-        if not os.path.exists(sound_path):
+        sound_dir = os.environ.get("SOUNDBOARD_DIR", "")
+        sound_path = ""
+        for ext in Config.SUPPORTED_FORMATS:
+            temp_path = os.path.join(sound_dir, sound_name + ext)
+            if os.path.exists(temp_path):
+                sound_path = temp_path
+                break
+
+        if not sound_path: # If no supported file was found
             return False
        
         self.player.setAudioOutput(self.audio_output)
