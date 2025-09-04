@@ -498,6 +498,7 @@ class SoundboardWindow(QMainWindow):
         """Create play/stop buttons"""
         self.play_button = self._create_icon_button("play.png", (70, 50), (50, 50))
         self.stop_button = self._create_icon_button("stop.webp", (70, 50), (50, 50))
+        self.reload_button = self._create_icon_button("reload.png", (30, 30), (20, 20))
     
     def _create_volume_controls(self) -> None:
         """Create volume sliders and labels"""
@@ -623,6 +624,7 @@ class SoundboardWindow(QMainWindow):
         self.dialog.setWindowTitle('Set Keybind')
         self.dialog.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.dialog.setStyleSheet("QLabel: {background: transparent;}")
+
     def _create_icon_button(self, icon_file: str, size: tuple, icon_size: tuple = None) -> QPushButton:
         """Helper to create icon buttons"""
         button = QPushButton()
@@ -742,9 +744,14 @@ class SoundboardWindow(QMainWindow):
         bottom_layout.addSpacing(200)
         bottom_layout.addLayout(input_layout)
         
-        # Add all layouts to main layout
-        #v_layout.addLayout(title_layout)
-        v_layout.addWidget(self.now_playing, alignment=Qt.AlignCenter)
+        hlayout = QHBoxLayout()
+        hlayout.addSpacing(250)
+        hlayout.addWidget(self.now_playing, alignment=Qt.AlignCenter)
+        
+        hlayout.addWidget(self.reload_button, alignment=Qt.AlignRight)
+        
+
+        v_layout.addLayout(hlayout)
         v_layout.addWidget(self.list_view)
         v_layout.addLayout(controls_layout)
         v_layout.addLayout(bottom_layout)
@@ -782,8 +789,8 @@ class SoundboardWindow(QMainWindow):
             self, "_select_folder", Qt.QueuedConnection))
         self.dialog.accepted.connect(self._set_hotkey)
         self.dialog.finished.connect(self.unhook_keybind)
-
-
+        self.reload_button.clicked.connect(self.reload_list)
+        
         # Player state changes
         self.audio_manager.player.playbackStateChanged.connect(self._on_playback_state_changed)
     
@@ -911,7 +918,11 @@ class SoundboardWindow(QMainWindow):
         self.keybind_manager.load_keybinds()
         
         
-
+    def reload_list(self) -> None:
+        """Reload sound list and keybinds"""
+        self._load_sounds()
+        self.keybind_manager.save_keybinds()
+        self.keybind_manager.load_keybinds()
     
     def _on_playback_state_changed(self, state) -> None:
         """Handle media player state changes"""
