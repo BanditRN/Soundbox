@@ -17,6 +17,12 @@ from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput, QMediaDevices
 from pyqt_loading_button import LoadingButton, AnimationType
 import winaccent
 
+import logging
+
+# Configure logging
+logging.basicConfig(filename='soundbox.log', level=logging.ERROR,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 global pressed_key
 class Config:
@@ -180,8 +186,15 @@ class KeybindManager:
                             QtCore.Q_ARG(str, str(sound))
                         )
                     )
+            logging.info(f"Keybinds loaded successfully from {Config.KEYBINDS_FILE}")
         except FileNotFoundError:
+            logging.warning(f"Keybinds file not found: {Config.KEYBINDS_FILE}. Creating default keybinds.")
             self._create_default_keybinds()
+        except json.JSONDecodeError as e:
+            logging.error(f"Error decoding keybinds.json: {e}. Creating default keybinds.")
+            self._create_default_keybinds()
+        except Exception as e:
+            logging.exception(f"An unexpected error occurred while loading keybinds: {e}")
     
     def _create_default_keybinds(self) -> None:
         """Create default keybinds file"""
@@ -191,11 +204,16 @@ class KeybindManager:
         
         with open(Config.KEYBINDS_FILE, 'w') as f:
             json.dump(self.keybinds_json, f, indent=4)
+        logging.info(f"Default keybinds created and saved to {Config.KEYBINDS_FILE}")
     
     def save_keybinds(self) -> None:
         """Save keybinds to file"""
-        with open(Config.KEYBINDS_FILE, 'w') as f:
-            json.dump(self.keybinds, f, indent=4)
+        try:
+            with open(Config.KEYBINDS_FILE, 'w') as f:
+                json.dump(self.keybinds, f, indent=4)
+            logging.info(f"Keybinds saved successfully to {Config.KEYBINDS_FILE}")
+        except Exception as e:
+            logging.exception(f"An error occurred while saving keybinds: {e}")
 
 
 class AudioManager:
@@ -882,18 +900,24 @@ class SoundboardWindow(QMainWindow):
             """Hook keyboard input for keybind setting"""
             global pressed_key
             if e.event_type == "down":
-                match e.name:
-                    case 'backspace':
-                        return
-                    case 'space':
-                        return
-                pressed_key.append(e.name)
-                pressed_key = list(set(pressed_key))
-                self.dialog.setTextValue("+".join(str(key) for key in pressed_key))
-                if e.name not in self.fkeys:
-                    keyboard.send('backspace')                 
-                self.set_keybind = self.dialog.textValue()       
+                logging.debug(f"Key pressed in hook: {e.name}, event_type: {e.event_type}")
+                # Only process keys that are not 'backspace' or 'space'
+                if e.name == 'backspace' or e.name == 'space':
+                    logging.debug(f"Ignored key: {e.name}")
+                    return
+                
+                # Attempt to parse the key to ensure it's a valid keyboard key
+                try:
+                    keyboard.parse_hotkey(e.name) # Check if the single key is valid
+                    pressed_key.append(e.name)
+                    pressed_key = list(set(pressed_key)) # Ensure uniqueness
+                    self.dialog.setTextValue("+".join(str(key) for key in pressed_key))
+                    self.set_keybind = self.dialog.textValue()
+                except ValueError:
+                    logging.warning(f"Invalid single key '{e.name}' pressed during keybind setting. Ignoring.")
+                
             else:
+                logging.debug(f"Key event type not 'down': {e.event_type}")
                 return
     @Slot()
     def unhook_keybind(self):
@@ -904,11 +928,24 @@ class SoundboardWindow(QMainWindow):
         """Set hotkey for selected sound"""
         index = self.list_view.currentIndex()
         if not index.isValid():
+            logging.warning("Attempted to set hotkey with no sound selected.")
             return 
         action_name = self.model.data(index, Qt.DisplayRole)
-        self.keybind_manager.keybinds[action_name] = self.dialog.textValue() 
-        self.keybind_manager.save_keybinds()
-        self.keybind_manager.load_keybinds()
+        new_keybind = self.dialog.textValue()
+
+        try:
+            # Validate the hotkey string
+            keyboard.parse_hotkey(new_keybind)
+            self.keybind_manager.keybinds[action_name] = new_keybind
+            self.keybind_manager.save_keybinds()
+            self.keybind_manager.load_keybinds()
+            logging.info(f"Hotkey '{new_keybind}' set successfully for '{action_name}'.")
+        except ValueError as e:
+            logging.error(f"Invalid keybind entered for '{action_name}': '{new_keybind}' - {e}")
+            QMessageBox.warning(self, "Invalid Keybind", f"The entered keybind is invalid: {e}. Please try again.")
+        except Exception as e:
+            logging.exception(f"An unexpected error occurred while setting keybind for '{action_name}': {e}")
+            QMessageBox.warning(self, "Error", f"An unexpected error occurred while setting keybind: {e}")
         
         
 
@@ -1037,7 +1074,7 @@ def main():
 
         sys.exit(app.run())
     except Exception as e:
-        print(f"Application error: {e}")
+        logging.exception("Application encountered an unhandled exception:")
         sys.exit(1)
 
 
