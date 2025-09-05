@@ -358,7 +358,7 @@ class SoundboardWindow(QMainWindow):
         self._load_sounds()
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        
+        self.setWindowModality(QtCore.Qt.ApplicationModal)
         self.setStyleSheet("""
                            QWidget{
                            background: qlineargradient(x1:0 y1:0, x2:1 y2:1, stop:0 #051c2a stop:1 #44315f);
@@ -635,7 +635,7 @@ class SoundboardWindow(QMainWindow):
         self.dialog.setWindowTitle('Set Keybind')
         self.dialog.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.dialog.setStyleSheet("QLabel: {background: transparent;}")
-        
+        self.dialog.setModal(True)
 
     def make_readonly(self) -> None:
         if self.dialog.isVisible():
@@ -810,6 +810,7 @@ class SoundboardWindow(QMainWindow):
         self.search_box.textChanged.connect(self._filter_sound_list)
         self.dialog.accepted.connect(self._set_hotkey)
         self.dialog.finished.connect(self.unhook_keybind)
+        self.dialog.finished.connect(lambda: self.setEnabled(True))
         self.reload_button.clicked.connect(self.reload_list)
         
         # Player state changes
@@ -898,6 +899,7 @@ class SoundboardWindow(QMainWindow):
         global pressed_key
         QTimer.singleShot(0, self.make_readonly)
         self.dialog.show()
+        self.setEnabled(False)
         try:
             existing_key = self.keybind_manager.keybinds[self.model.data(self.list_view.currentIndex(), Qt.DisplayRole)]
         except KeyError:
@@ -908,27 +910,26 @@ class SoundboardWindow(QMainWindow):
         keyboard.hook(self._keyboard_input_hook)
 
     def _keyboard_input_hook(self, e) -> None:
-            """Hook keyboard input for keybind setting"""
-            global pressed_key
-            self.dialog
-            if e.event_type == "down":
-                match e.name:
-                    case 'backspace':
-                        self.line_edit.backspace()
-                        if pressed_key:
-                            pressed_key.pop()
-                        return
-                    case 'space':
-                        return
-                #keyboard.parse_hotkey(keyboard._pressed_events)
-                pressed_key.append(e.name)
-                pressed_key = list(set(pressed_key))
-                self.dialog.setTextValue('+'.join(str(key) for key in pressed_key))
-                #self.dialog.setTextValue("+".join(str(key) for key in pressed_key))
-            
-                self.set_keybind = self.dialog.textValue()       
-            else:
-                return
+        """Hook keyboard input for keybind setting"""
+        global pressed_key
+        if e.event_type == "down":
+            match e.name:
+                case 'backspace':
+                    self.line_edit.backspace()
+                    if pressed_key:
+                        pressed_key.pop()
+                    return
+                case 'space':
+                    return
+                case 'enter':
+                    return
+
+            pressed_key.append(e.name)
+            pressed_key = list(set(pressed_key))
+            self.dialog.setTextValue('+'.join(str(key) for key in pressed_key))    
+            self.set_keybind = self.dialog.textValue()       
+        else:
+            return
     @Slot()
     def unhook_keybind(self):
         keyboard.unhook(self._keyboard_input_hook)
@@ -941,8 +942,7 @@ class SoundboardWindow(QMainWindow):
             return 
         action_name = self.model.data(index, Qt.DisplayRole)
         self.keybind_manager.keybinds[action_name] = self.dialog.textValue() 
-        self.keybind_manager.save_keybinds()
-        self.keybind_manager.load_keybinds()
+        self.reload_list()
         
     def _filter_sound_list(self) -> None:
         """Filter sound list based on search box input"""
