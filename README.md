@@ -33,7 +33,7 @@ Currently, SoundBox primarily supports `.mp3` `.wav` `.ogg` `.flac` audio files.
 
 ## Usage:
 
-1.  **Select Sound Folder:** Upon first launch or to change your sound library, click the "Select Folder" button and choose the directory containing your `.mp3` files.
+1.  **Select Sound Folder:** Upon first launch or to change your sound library, click the "Select Folder" button and choose the directory containing your `Sound` files.
 2.  **Play Sounds:** Double-click a sound in the list to play it, or use the dedicated Play/Stop buttons.
 3.  **Set Keybinds:** Hover over a sound in the list and click the "Set Key" button to assign a global hotkey.
 4.  **Volume Control:** Adjust the output and input volumes using the sliders.
