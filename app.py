@@ -2,14 +2,14 @@ import sys
 import os
 import json
 import keyboard
-from typing import List, Optional, Dict, Any
+from typing import List, Dict, Any
 
-from PySide6 import QtCore, QtWidgets, QtGui, QtMultimedia
+from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtCore import Qt, QSize, QRect, QUrl, Signal, Slot, QModelIndex, QMetaObject, QStringListModel
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                                QListView, QPushButton, QSlider, QLabel, QComboBox, QFrame,
                                QStyledItemDelegate, QInputDialog, QMessageBox, QFileDialog,
-                               QAbstractItemView, QStyle)
+                               QAbstractItemView, QStyle , QTextEdit)
 from PySide6.QtGui import QIcon, QFont
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput, QMediaDevices
 
@@ -405,6 +405,9 @@ class SoundboardWindow(QMainWindow):
                             color: white;
 
                             }
+                            QTextEdit{
+                            color: white;
+                            }
                            """)
         
 
@@ -607,6 +610,11 @@ class SoundboardWindow(QMainWindow):
         self.now_playing = QLabel("Now Playing: None")
         self.now_playing.setFont(QFont("Arial", 12))
         self.now_playing.setStyleSheet("border: none;background: transparent;")
+        #Search box
+        self.search_box = QTextEdit()
+        self.search_box.setPlaceholderText("Search...")
+        self.search_box.setFixedHeight(30)
+        self.search_box.setFixedWidth(200)
         
         # Select folder button
         self.select_folder_btn = LoadingButton(self)
@@ -701,9 +709,8 @@ class SoundboardWindow(QMainWindow):
         title_text.setStyleSheet("color: white; border: None;background: transparent;padding-top: 5px;")
         title_bar.addWidget(title_text, alignment=Qt.AlignLeft)
         title_bar.addStretch()
-        title_bar.addWidget(self.minimize_btn, alignment=Qt.AlignRight)
-        #title_bar.addWidget(self.maximize_btn, alignment=Qt.AlignRight)
-        title_bar.addWidget(self.close_btn, alignment=Qt.AlignRight)
+        title_bar.addWidget(self.minimize_btn, alignment=Qt.AlignRight | Qt.AlignTop) 
+        title_bar.addWidget(self.close_btn, alignment=Qt.AlignRight | Qt.AlignTop)
         title_bar.setContentsMargins(10,0,0,10)
 
         main_layout.addLayout(title_bar)
@@ -747,8 +754,11 @@ class SoundboardWindow(QMainWindow):
         bottom_layout.addLayout(input_layout)
         
         hlayout = QHBoxLayout()
-        hlayout.addSpacing(250)
+        
+        hlayout.addWidget(self.search_box, alignment=Qt.AlignLeft)
+
         hlayout.addWidget(self.now_playing, alignment=Qt.AlignCenter)
+        
         
         hlayout.addWidget(self.reload_button, alignment=Qt.AlignRight)
         
@@ -789,6 +799,7 @@ class SoundboardWindow(QMainWindow):
         # Other
         self.select_folder_btn.setAction(lambda: QMetaObject.invokeMethod(
             self, "_select_folder", Qt.QueuedConnection))
+        self.search_box.textChanged.connect(self._filter_sound_list)
         self.dialog.accepted.connect(self._set_hotkey)
         self.dialog.finished.connect(self.unhook_keybind)
         self.reload_button.clicked.connect(self.reload_list)
@@ -919,7 +930,17 @@ class SoundboardWindow(QMainWindow):
         self.keybind_manager.save_keybinds()
         self.keybind_manager.load_keybinds()
         
+    def _filter_sound_list(self) -> None:
+        """Filter sound list based on search box input"""
+        filter_text = self.search_box.toPlainText().lower()
+        all_sounds = self.audio_manager.get_sound_list()
         
+        if filter_text:
+            filtered_sounds = [sound for sound in all_sounds if filter_text in sound.lower()]
+        else:
+            filtered_sounds = all_sounds
+        
+        self.model.setStringList(filtered_sounds)   
     def reload_list(self) -> None:
         """Reload sound list and keybinds"""
         self._load_sounds()
