@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
 from PySide6.QtGui import QIcon, QFont
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput, QMediaDevices
 
-
+import time
 from pyqt_loading_button import LoadingButton, AnimationType
 import winaccent
 
@@ -398,7 +398,7 @@ class SoundboardWindow(QMainWindow):
                             color: white;
                            }
                            QListView{
-                           background: transparent;
+                            background: transparent;
                             padding-right: 2px;
                             padding-top: 2px;
                             padding-bottom: 2px;
@@ -589,16 +589,17 @@ class SoundboardWindow(QMainWindow):
         self.list_view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.list_view.setSelectionMode(QAbstractItemView.SingleSelection)
         self.list_view.setMouseTracking(True)
-        self.list_view.setSpacing(5)
+        self.list_view.setSpacing(2)
         self.list_view.setUniformItemSizes(True)
         self.list_view.setViewMode(QListView.ListMode)
         self.list_view.setResizeMode(QListView.Adjust)
         self.list_view.setWrapping(False)
         self.list_view.setIconSize(QSize(100, 40))
-        self.list_view.setFont(QFont("Arial", 12))
+        self.list_view.setFont(QFont("Arial", 13))
         self.list_view.setStyleSheet(StyleSheets.get_scrollbar_style())
         self.list_view.setAutoFillBackground(True)
         self.list_view.viewport().setAutoFillBackground(True)
+        
         
         # Set up delegate
         self.hover_delegate = HoverDelegate(self)
@@ -941,6 +942,13 @@ class SoundboardWindow(QMainWindow):
         if not index.isValid():
             return 
         action_name = self.model.data(index, Qt.DisplayRole)
+        try:
+            if self.dialog.textValue() == "":
+                keyboard.remove_hotkey(self.keybind_manager.keybinds[action_name])
+        except:
+            self.reload_list()
+            return
+
         self.keybind_manager.keybinds[action_name] = self.dialog.textValue() 
         self.reload_list()
         
