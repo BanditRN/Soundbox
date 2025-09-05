@@ -509,11 +509,12 @@ class SoundboardWindow(QMainWindow):
         self.volume_slider_value = self._create_label(
             str(self.settings_manager.get("VolumeOutput")), 12)
         self.volume_slider_output = self._create_volume_slider("VolumeOutput")
-        
+        self.volume_slider_output.setFocusPolicy(Qt.NoFocus)
         # Input volume
         self.volume_input_slider_value = self._create_label(
             str(self.settings_manager.get("VolumeInput")), 12)
         self.volume_slider_input = self._create_volume_slider("VolumeInput")
+        self.volume_slider_input.setFocusPolicy(Qt.NoFocus)
     
     def _create_window_controls(self) -> None:
         """Create window control buttons"""
