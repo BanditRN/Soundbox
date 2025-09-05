@@ -5,7 +5,7 @@ import keyboard
 from typing import List, Dict, Any
 
 from PySide6 import QtCore, QtWidgets, QtGui
-from PySide6.QtCore import Qt, QSize, QRect, QUrl, Signal, Slot, QModelIndex, QMetaObject, QStringListModel
+from PySide6.QtCore import Qt, QSize, QRect, QUrl, Signal, Slot, QModelIndex, QMetaObject, QStringListModel,QTimer
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                                QListView, QPushButton, QSlider, QLabel, QComboBox, QFrame,
                                QStyledItemDelegate, QInputDialog, QMessageBox, QFileDialog,
@@ -634,6 +634,13 @@ class SoundboardWindow(QMainWindow):
         self.dialog.setWindowTitle('Set Keybind')
         self.dialog.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.dialog.setStyleSheet("QLabel: {background: transparent;}")
+        
+
+    def make_readonly(self) -> None:
+        if self.dialog.isVisible():
+            self.line_edit = self.dialog.findChild(QtWidgets.QLineEdit)
+            self.line_edit
+            self.line_edit.setReadOnly(True)
 
     def _create_icon_button(self, icon_file: str, size: tuple, icon_size: tuple = None) -> QPushButton:
         """Helper to create icon buttons"""
@@ -888,6 +895,7 @@ class SoundboardWindow(QMainWindow):
     def _on_keybind_button_clicked(self, index: QModelIndex) -> None:
         """Handle keybind button click"""
         global pressed_key
+        QTimer.singleShot(0, self.make_readonly)
         self.dialog.show()
         try:
             existing_key = self.keybind_manager.keybinds[self.model.data(self.list_view.currentIndex(), Qt.DisplayRole)]
@@ -901,17 +909,22 @@ class SoundboardWindow(QMainWindow):
     def _keyboard_input_hook(self, e) -> None:
             """Hook keyboard input for keybind setting"""
             global pressed_key
+            self.dialog
             if e.event_type == "down":
                 match e.name:
                     case 'backspace':
+                        self.line_edit.backspace()
+                        if pressed_key:
+                            pressed_key.pop()
                         return
                     case 'space':
                         return
+                #keyboard.parse_hotkey(keyboard._pressed_events)
                 pressed_key.append(e.name)
                 pressed_key = list(set(pressed_key))
-                self.dialog.setTextValue("+".join(str(key) for key in pressed_key))
-                if e.name not in self.fkeys:
-                    keyboard.send('backspace')                 
+                self.dialog.setTextValue('+'.join(str(key) for key in pressed_key))
+                #self.dialog.setTextValue("+".join(str(key) for key in pressed_key))
+            
                 self.set_keybind = self.dialog.textValue()       
             else:
                 return
