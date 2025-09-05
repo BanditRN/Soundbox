@@ -1042,6 +1042,20 @@ class SoundboardWindow(QMainWindow):
         if event.key() == Qt.Key_Escape:
             self.close()
 
+class TrayIcon(QtWidgets.QSystemTrayIcon):
+    def __init__(self, icon, parent=None):
+        super().__init__(icon, parent)
+        self.setToolTip('SoundBox')
+        menu = QtWidgets.QMenu(parent)
+        
+        show_action = menu.addAction("Show")
+        quit_action = menu.addAction("Quit")
+        
+        show_action.triggered.connect(parent.showNormal)
+        quit_action.triggered.connect(QApplication.instance().quit)
+        
+        self.setContextMenu(menu)
+        self.activated.connect(self.onTrayIconActivated)
 
 class SoundboardApplication:
     """Main application class"""
@@ -1050,7 +1064,7 @@ class SoundboardApplication:
         self.app = QApplication(sys.argv)
         self._setup_application()
         self.window = SoundboardWindow()
-    
+
     def _setup_application(self) -> None:
         """Setup application properties"""
         #self.app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
