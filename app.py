@@ -17,10 +17,9 @@ import time
 from pyqt_loading_button import LoadingButton, AnimationType
 import winaccent
 
-
+os.environ["QT_LOGGING_RULES"] = "*.ffmpeg.*=false"
 global pressed_key
 class Config:
-    """Configuration constants and file management"""
     if not os.path.exists(os.getenv('APPDATA')+'\\Soundbox') :
         os.mkdir(os.getenv('APPDATA')+'\\Soundbox')
     KEYBINDS_FILE = os.getenv('APPDATA') + '\\Soundbox\\keybinds.json'
@@ -39,7 +38,6 @@ class Config:
 
 
 class StyleSheets:
-    """Centralized style sheets"""
     
     @staticmethod
     def get_scrollbar_style() -> str:
@@ -96,13 +94,11 @@ QScrollBar::sub-page {
 
 
 class ResourceManager:
-    """Handles resource path resolution"""
     
     @staticmethod
     def get_resource_path(relative_path: str) -> str:
-        """Get the absolute path to a resource file"""
         try:
-            # PyInstaller creates a temp folder and stores path in _MEIPASS
+                                                                           
             base_path = sys._MEIPASS
         except Exception:
             base_path = os.path.abspath(".")
@@ -110,14 +106,12 @@ class ResourceManager:
 
 
 class SettingsManager:
-    """Manages application settings"""
     
     def __init__(self):
         self.settings = self._load_settings()
         
     
     def _load_settings(self) -> Dict[str, Any]:
-        """Load settings from file or create default"""
         try:
             with open(Config.SETTINGS_FILE, "r") as f:
                 return json.load(f)
@@ -126,21 +120,17 @@ class SettingsManager:
             return Config.DEFAULT_SETTINGS.copy()
     
     def _save_settings(self, settings: Dict[str, Any]) -> None:
-        """Save settings to file"""
         with open(Config.SETTINGS_FILE, "w") as f:
             json.dump(settings, f, indent=4)
     
     def get(self, key: str, default=None):
-        """Get a setting value"""
         return self.settings.get(key, default)
     
     def set(self, key: str, value: Any) -> None:
-        """Set a setting value and save"""
         self.settings[key] = value
         self._save_settings(self.settings)
 
     def update_environment_variables(self) -> None:
-        """Update environment variables from settings"""
         env_mappings = {
             "Directory": "SOUNDBOARD_DIR",
             "DefaultOutput": "DefaultOutput",
@@ -156,7 +146,6 @@ class SettingsManager:
 
 
 class KeybindManager:
-    """Manages keyboard shortcuts and bindings"""
     
     def __init__(self, parent):
         self.parent = parent
@@ -164,7 +153,6 @@ class KeybindManager:
         self.keybinds_json = {}
     
     def load_keybinds(self) -> None:
-        """Load keybinds from file"""
         try:
             with open(Config.KEYBINDS_FILE, 'r') as f:
                 self.keybinds_json = json.load(f)
@@ -184,7 +172,6 @@ class KeybindManager:
             self._create_default_keybinds()
     
     def _create_default_keybinds(self) -> None:
-        """Create default keybinds file"""
         sound_list = self.parent.audio_manager.get_sound_list()
         for item in sound_list:
             self.keybinds_json[item] = ""
@@ -193,13 +180,11 @@ class KeybindManager:
             json.dump(self.keybinds_json, f, indent=4)
     
     def save_keybinds(self) -> None:
-        """Save keybinds to file"""
         with open(Config.KEYBINDS_FILE, 'w') as f:
             json.dump(self.keybinds, f, indent=4)
 
 
 class AudioManager:
-    """Manages audio devices and playback"""
     
     def __init__(self, settings_manager: SettingsManager):
         self.settings_manager = settings_manager
@@ -211,21 +196,18 @@ class AudioManager:
         self.audio_soundboard = None
         
     def get_audio_output_devices(self) -> List:
-        """Get list of audio output devices"""
         devices = QMediaDevices.audioOutputs()
         if not devices:
             QMessageBox.warning(None, "Error", "No audio output devices found.")
         return devices
     
     def get_audio_input_devices(self) -> List:
-        """Get list of audio input devices (using output devices for now)"""
         devices = QMediaDevices.audioOutputs()
         if not devices:
             QMessageBox.warning(None, "Error", "No audio input devices found.")
         return devices
     
     def setup_audio_output(self, device_name: str) -> None:
-        """Setup audio output device"""
         devices = self.get_audio_output_devices()
         selected_device = next((dev for dev in devices if dev.description() == device_name), None)
         
@@ -236,7 +218,6 @@ class AudioManager:
             self.audio_output.setVolume(volume)
     
     def setup_audio_input(self, device_name: str) -> None:
-        """Setup audio input device"""
         devices = self.get_audio_input_devices()
         selected_device = next((dev for dev in devices if dev.description() == device_name), None)
         
@@ -246,7 +227,6 @@ class AudioManager:
             self.audio_soundboard.setVolume(volume)
     
     def get_sound_list(self) -> List[str]:
-        """Get list of available sound files"""
         directory = os.environ.get("SOUNDBOARD_DIR")
         if not directory or not os.path.exists(directory):
             return []
@@ -257,12 +237,12 @@ class AudioManager:
                 if file.endswith(Config.SUPPORTED_FORMATS):
                     full_path = os.path.join(directory, file)
                     if os.path.exists(full_path):
-                        # Remove any of the supported extensions
+                                                                
                         name = os.path.splitext(file)[0]
                         sound_files_set.add(name)
             
-            sound_files = list(sound_files_set) # Convert set to list for sorting
-            # Sort by modification time, newest first
+            sound_files = list(sound_files_set)                                  
+                                                     
             sound_files.sort(key=lambda x: max(
                 [os.path.getmtime(os.path.join(directory, x + ext)) 
                  for ext in Config.SUPPORTED_FORMATS if os.path.exists(os.path.join(directory, x + ext))]
@@ -273,7 +253,6 @@ class AudioManager:
             return ["NO MUSIC WAS LOADED"]
     
     def play_sound_file(self, sound_name: str) -> bool:
-        """Play a sound file by name"""
         
         if not self.audio_output or not self.audio_soundboard:
             return False
@@ -286,7 +265,7 @@ class AudioManager:
                 sound_path = temp_path
                 break
 
-        if not sound_path: # If no supported file was found
+        if not sound_path:                                 
             return False
        
         self.player.setAudioOutput(self.audio_output)
@@ -304,7 +283,6 @@ class AudioManager:
 
 
 class HoverDelegate(QStyledItemDelegate):
-    """Custom delegate for list items with hover buttons"""
     buttonClicked = Signal(QModelIndex)
 
     def paint(self, painter, option, index):
@@ -326,7 +304,6 @@ class HoverDelegate(QStyledItemDelegate):
         return super().editorEvent(event, model, option, index)
 
     def _get_button_rect(self, option) -> QRect:
-        """Calculate button position and size"""
         button_width, button_height = 80, 20
         return QRect(
             option.rect.right() - button_width - 5,
@@ -337,14 +314,13 @@ class HoverDelegate(QStyledItemDelegate):
 
 
 class SoundboardWindow(QMainWindow):
-    """Main application window"""
     
     def __init__(self):
         super().__init__()
         self.set_keybind = ""
         self.old_pos = None
         
-        # Initialize managers
+                             
         self.settings_manager = SettingsManager()
         self.audio_manager = AudioManager(self.settings_manager)
         self.keybind_manager = KeybindManager(self)
@@ -368,8 +344,11 @@ class SoundboardWindow(QMainWindow):
                            QPushButton{
                            background: transparent;
                            }
-                           QPushButton:hover:!pressed{
+                           QPushButton#reloadBtn:hover:!pressed{
                            background-color: #363637;
+                           }
+                           QPushButton:hover:pressed{
+                           background-color: #141417
                            }
                            QComboBox#audio_devices, QComboBox#audio_input_devices{
                            color: white;
@@ -417,27 +396,27 @@ class SoundboardWindow(QMainWindow):
     def changeEvent(self, event):
         if event.type() == QtCore.QEvent.Type.WindowStateChange:
             if self.isMinimized():
-                # Prevent immediate system minimize
+                                                   
                 event.ignore() 
                 self.start_minimize_animation()
             elif self.isMaximized() or self.isModal():
-                # Handle other state changes if needed
+                                                      
                 pass
         super().changeEvent(event)
     def start_minimize_animation(self):
-        # Store current geometry for restoration
+                                                
         self._original_geometry = self.geometry()
 
-        # Animate size and opacity
+                                  
         self.minimize_animation = QtCore.QPropertyAnimation(self, b"geometry")
-        self.minimize_animation.setDuration(500) # milliseconds
+        self.minimize_animation.setDuration(500)               
         self.minimize_animation.setStartValue(self.geometry())
-        # Animate to a small size and move to a corner (e.g., bottom-right)
+                                                                           
         end_rect = self.geometry().adjusted(self.width() // 2, self.height() // 2, -self.width() // 2, -self.height() // 2)
-        end_rect.moveTo(self.screen().geometry().bottomRight() - QSize(50, 50)) # Example target
+        end_rect.moveTo(self.screen().geometry().bottomRight() - QSize(50, 50))                 
         self.minimize_animation.setEndValue(end_rect)
 
-        # Connect a slot to hide/minimize after animation completes
+                                                                   
         self.minimize_animation.finished.connect(self._finish_minimize)
         self.minimize_animation.start()
     def _finish_minimize(self):
@@ -449,12 +428,11 @@ class SoundboardWindow(QMainWindow):
         super().showNormal()
 
     def _setup_window(self) -> None:
-        """Setup window properties"""
         self.setWindowTitle("SoundBox")
         self.setWindowIcon(QIcon(ResourceManager.get_resource_path("window_icon.png")))
         self.setWindowFlags(Qt.FramelessWindowHint)
         
-        # Center window on screen
+                                 
         screen = QApplication.primaryScreen().availableGeometry()
         width, height = Config.WINDOW_SIZE
         x = (screen.width() - width) // 2
@@ -464,63 +442,59 @@ class SoundboardWindow(QMainWindow):
         
     
     def _setup_global_hotkeys(self) -> None:
-        """Setup global keyboard shortcuts"""
-        # keyboard.add_hotkey('space', lambda: QMetaObject.invokeMethod(
-        #     self, "_hotkey_play", Qt.QueuedConnection))
+                                                                        
+                                                         
         
         keyboard.add_hotkey('backspace', lambda: QMetaObject.invokeMethod(
             self, "_hotkey_stop", Qt.QueuedConnection))
     
     def _create_widgets(self) -> None:
-        """Create all UI widgets"""
         self.central_widget = QWidget()
         self.central_widget.setObjectName("centralwidget")
 
-        # Media control buttons
+                               
         self._create_media_buttons()
         
-        # Volume controls
+                         
         self._create_volume_controls()
         
-        # Window controls
+                         
         self._create_window_controls()
         
-        # Audio device selection
+                                
         self._create_audio_device_widgets()
         
-        # Sound list
+                    
         self._create_sound_list_widget()
         
-        # Other widgets
+                       
         self._create_other_widgets()
         
-        # Keybind dialog
+                        
         self._create_keybind_dialog()
 
     def _create_media_buttons(self) -> None:
-        """Create play/stop buttons"""
         self.play_button = self._create_icon_button("play.png", (70, 50), (50, 50))
         self.stop_button = self._create_icon_button("stop.webp", (70, 50), (50, 50))
         self.reload_button = self._create_icon_button("reload.png", (30, 30), (20, 20))
+        self.reload_button.setObjectName("reloadBtn")
     
     def _create_volume_controls(self) -> None:
-        """Create volume sliders and labels"""
-        # Output volume
+                       
         self.volume_slider_value = self._create_label(
             str(self.settings_manager.get("VolumeOutput")), 12)
         self.volume_slider_output = self._create_volume_slider("VolumeOutput")
         self.volume_slider_output.setFocusPolicy(Qt.NoFocus)
-        # Input volume
+                      
         self.volume_input_slider_value = self._create_label(
             str(self.settings_manager.get("VolumeInput")), 12)
         self.volume_slider_input = self._create_volume_slider("VolumeInput")
         self.volume_slider_input.setFocusPolicy(Qt.NoFocus)
     
     def _create_window_controls(self) -> None:
-        """Create window control buttons"""
-        #self.close_btn = self._create_window_button("close.png", (30, 25))
+                                                                           
         self.close_btn = QPushButton('X')
-        #self.close_btn.setStyleSheet("background-color: transparent; color: white; border: none; font-size: 14px; hover {background-color: red;}")
+                                                                                                                                                   
         self.close_btn.setStyleSheet("""
             QPushButton
             {
@@ -529,50 +503,52 @@ class SoundboardWindow(QMainWindow):
             border: none; 
             font-size: 14px;
             font-weight: bold;
-            
+            border-top-left-radius: 0px;
+            border-bottom-left-radius: 0px;
+            border-bottom-right-radius: 0px;
+            border-top-right-radius: 10px;
             }
             QPushButton:hover:!pressed
             {
             background-color: red;
             }""")
         self.close_btn.setFixedSize(30, 25)
-        #self.maximize_btn = self._create_window_button("maximize.png", (30, 25))
-        #self.minimize_btn = self._create_window_button("minimize.png", (30, 25))
+                                                                                 
+                                                                                 
         self.minimize_btn = QPushButton('_')
         self.minimize_btn.setStyleSheet("""
-            QPushButton{text-align: top; background-color: transparent; color: black; border: none; font-size: 14px; font-weight: bold;}
+            QPushButton{text-align: top; background-color: transparent; border-radius: 0px; color: black;  border: none;  font-size: 14px; font-weight: bold;}
                                         QPushButton:hover:!pressed{background-color: grey;}
             """)
         self.minimize_btn.setFixedSize(30, 25)
         self.minimize_btn.setFocusPolicy(Qt.NoFocus)
         self.close_btn.setFocusPolicy(Qt.NoFocus)
     def _create_audio_device_widgets(self) -> None:
-        """Create audio device selection widgets"""
-        # Output devices
+                        
         self.audio_devices = QComboBox()
         self.audio_devices.setObjectName("audio_devices")
-#         self.audio_devices.setStyleSheet("""QComboBox QListView
-# {
+                                                                 
+   
     
-# 	background: radial-gradient(circle,rgba(5, 4, 4, 1) 59%, rgba(89, 89, 89, 0.66) 83%);
-# }""")
+                                                                                        
+       
         devices = [dev.description() for dev in self.audio_manager.get_audio_output_devices()]
         self.audio_devices.addItems(devices)
         self.audio_devices.setCurrentText(self.settings_manager.get("DefaultOutput", ""))
         
-        # Input devices
+                       
         self.audio_input_devices = QComboBox()
         self.audio_input_devices.setObjectName("audio_input_devices")
-#         self.audio_input_devices.setStyleSheet("""QComboBox QListView
-# {
+                                                                       
+   
     
-# 	background: radial-gradient(circle,rgba(5, 4, 4, 1) 59%, rgba(89, 89, 89, 0.66) 83%);
-# }""")
+                                                                                        
+       
         input_devices = [dev.description() for dev in self.audio_manager.get_audio_input_devices()]
         self.audio_input_devices.addItems(input_devices)
         self.audio_input_devices.setCurrentText(self.settings_manager.get("DefaultInput", ""))
         
-        # Labels
+                
         self.device_label = self._create_label("Select your audio Output device", 12)
         
         
@@ -580,12 +556,11 @@ class SoundboardWindow(QMainWindow):
         
     
     def _create_sound_list_widget(self) -> None:
-        """Create sound list view"""
         self.list_view = QListView()
         self.model = QStringListModel()
         self.list_view.setModel(self.model)
         
-        # Configure list view
+                             
         self.list_view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.list_view.setSelectionMode(QAbstractItemView.SingleSelection)
         self.list_view.setMouseTracking(True)
@@ -601,24 +576,23 @@ class SoundboardWindow(QMainWindow):
         self.list_view.viewport().setAutoFillBackground(True)
         
         
-        # Set up delegate
+                         
         self.hover_delegate = HoverDelegate(self)
         self.list_view.setItemDelegate(self.hover_delegate)
     
     def _create_other_widgets(self) -> None:
-        """Create remaining widgets"""
         
-        # Now playing
+                     
         self.now_playing = QLabel("Now Playing: None")
         self.now_playing.setFont(QFont("Arial", 12))
         self.now_playing.setStyleSheet("border: none;background: transparent;")
-        #Search box
+                   
         self.search_box = QTextEdit()
         self.search_box.setPlaceholderText("Search...")
         self.search_box.setFixedHeight(30)
         self.search_box.setFixedWidth(200)
         
-        # Select folder button
+                              
         self.select_folder_btn = LoadingButton(self)
         self.select_folder_btn.setText("Select Sound Folder")
         self.select_folder_btn.setAnimationType(AnimationType.Circle)
@@ -629,7 +603,6 @@ class SoundboardWindow(QMainWindow):
         self.select_folder_btn.setStyleSheet(StyleSheets.get_button_style())
     
     def _create_keybind_dialog(self) -> None:
-        """Create keybind setting dialog"""
         self.dialog = QInputDialog()
         self.dialog.setFixedSize(QSize(150, 100))
         self.dialog.setLabelText('Set your keybind')
@@ -645,7 +618,6 @@ class SoundboardWindow(QMainWindow):
             self.line_edit.setReadOnly(True)
 
     def _create_icon_button(self, icon_file: str, size: tuple, icon_size: tuple = None) -> QPushButton:
-        """Helper to create icon buttons"""
         button = QPushButton()
         button.setIcon(QIcon(ResourceManager.get_resource_path(icon_file)))
         if icon_size:
@@ -657,22 +629,9 @@ class SoundboardWindow(QMainWindow):
         button.setFocusPolicy(Qt.NoFocus)
         
         return button
-    def _create_window_button(self, icon_file: str, size: tuple, icon_size: tuple = None) -> QPushButton:
-        """Helper to create icon buttons"""
-        button = QPushButton()
-        button.setIcon(QIcon(ResourceManager.get_resource_path(icon_file)))
-        if icon_size:
-            button.setIconSize(QSize(*icon_size))
-        button.setStyleSheet("QPushbutton{background-color: transparent;border: 0px;} QPushbutton:hover:!clicked{background-color: "+ winaccent.accent_dark_mode +"; border-radius: 4px;}")
-        button.setFlat(True)
-        
-        button.setFixedSize(*size)
-        button.setFocusPolicy(Qt.NoFocus)
-        
-        return button
+
     
     def _create_label(self, text: str, font_size: int) -> QLabel:
-        """Helper to create labels"""
         label = QLabel(text)
         font = QFont()
         font.setPointSize(font_size)
@@ -681,7 +640,6 @@ class SoundboardWindow(QMainWindow):
         return label
     
     def _create_volume_slider(self, env_var: str) -> QSlider:
-        """Helper to create volume sliders"""
         slider = QSlider(Qt.Horizontal)
         slider.setCursor(Qt.PointingHandCursor)
         slider.setMaximum(100)
@@ -691,8 +649,7 @@ class SoundboardWindow(QMainWindow):
         return slider
     
     def _setup_layouts(self) -> None:
-        """Setup widget layouts"""
-        # Main layout
+                     
         
         main_layout = QVBoxLayout(self.central_widget)
         main_layout.setContentsMargins(0,0,0,0)
@@ -700,7 +657,7 @@ class SoundboardWindow(QMainWindow):
             if isinstance(widget, QLabel) or isinstance(widget, QPushButton):
                 widget.setStyleSheet("background: transparent;")
         
-        # Create frame
+                      
         
         self.frame = QFrame(self.central_widget)
         self.frame.setFrameShape(QFrame.Shape.Box)
@@ -709,7 +666,7 @@ class SoundboardWindow(QMainWindow):
         self.frame.setStyleSheet(StyleSheets.get_frame_style())
         self.frame.setLayout(main_layout)
         
-        #  Title bar layout
+                           
         title_bar = QHBoxLayout()
         
         title_bar.setSpacing(0)
@@ -724,7 +681,7 @@ class SoundboardWindow(QMainWindow):
 
         main_layout.addLayout(title_bar)
 
-        # Main vertical layout
+                              
         v_layout = QVBoxLayout()
         v_layout.setContentsMargins(10, 10, 10, 10)
         v_layout.setSpacing(10)
@@ -732,17 +689,17 @@ class SoundboardWindow(QMainWindow):
 
         
 
-        # Control buttons layout
+                                
         controls_layout = QHBoxLayout()
         controls_layout.setAlignment(Qt.AlignCenter | Qt.AlignBottom)
         controls_layout.addWidget(self.play_button)
         controls_layout.addWidget(self.stop_button)
         
-        # Bottom layout
+                       
         bottom_layout = QHBoxLayout()
         bottom_layout.setAlignment(Qt.AlignCenter | Qt.AlignBottom)
         
-        # Audio output layout
+                             
         output_layout = QVBoxLayout()
         output_layout.setAlignment(Qt.AlignLeft)
         output_layout.addWidget(self.device_label, alignment=Qt.AlignCenter)
@@ -750,7 +707,7 @@ class SoundboardWindow(QMainWindow):
         output_layout.addWidget(self.volume_slider_value, alignment=Qt.AlignCenter)
         output_layout.addWidget(self.volume_slider_output)
         
-        # Audio input layout
+                            
         input_layout = QVBoxLayout()
         input_layout.setAlignment(Qt.AlignRight)
         input_layout.addWidget(self.input_device_label, alignment=Qt.AlignCenter)
@@ -781,31 +738,30 @@ class SoundboardWindow(QMainWindow):
         self.setCentralWidget(self.frame)
     
     def _connect_signals(self) -> None:
-        """Connect widget signals to slots"""
-        # Media controls
+                        
         self.play_button.clicked.connect(self.play_sound)
         self.stop_button.clicked.connect(self.stop_sound)
         
-        # Window controls
+                         
         self.close_btn.clicked.connect(self.close)
-        #self.maximize_btn.clicked.connect(self._toggle_maximize)
+                                                                 
         self.minimize_btn.clicked.connect(self.showNormal)
         self.minimize_btn.clicked.connect(self.showMinimized)
         
-        # Audio devices
+                       
         self.audio_devices.currentTextChanged.connect(self._change_output_device)
         self.audio_input_devices.currentTextChanged.connect(self._change_input_device)
         
-        # Volume controls
+                         
         self.volume_slider_output.valueChanged.connect(self._update_volume)
         self.volume_slider_input.valueChanged.connect(self._update_volume)
         
-        # List view
+                   
         self.list_view.doubleClicked.connect(self.stop_sound)
         self.list_view.doubleClicked.connect(self.play_sound)
         self.hover_delegate.buttonClicked.connect(self._on_keybind_button_clicked)
         
-        # Other
+               
         self.select_folder_btn.setAction(lambda: QMetaObject.invokeMethod(
             self, "_select_folder", Qt.QueuedConnection))
         self.search_box.textChanged.connect(self._filter_sound_list)
@@ -814,38 +770,32 @@ class SoundboardWindow(QMainWindow):
         self.dialog.finished.connect(lambda: self.setEnabled(True))
         self.reload_button.clicked.connect(self.reload_list)
         
-        # Player state changes
+                              
         self.audio_manager.player.playbackStateChanged.connect(self._on_playback_state_changed)
     
     def _initialize_audio(self) -> None:
-        """Initialize audio system"""
         self.settings_manager.update_environment_variables()
         self._change_output_device()
         self._change_input_device()
     
     def _load_sounds(self) -> None:
-        """Load sound files into the list"""
         sound_list = self.audio_manager.get_sound_list()
         self.model.setStringList(sound_list)
     
-    # Event handlers and slots
+                              
     @Slot()
     def _hotkey_play(self):
-        """Global hotkey handler for play"""
         self.play_sound()
     
     @Slot()
     def _hotkey_stop(self):
-        """Global hotkey handler for stop"""
         self.stop_sound()
     
     @Slot(str)
     def _hotkey_play_sound(self, sound: str):
-        """Global hotkey handler for specific sound"""
         self._play_sound_by_name(sound)
     
     def _update_volume(self) -> None:
-        """Update volume settings"""
         output_volume = self.volume_slider_output.value()
         input_volume = self.volume_slider_input.value()
         
@@ -864,19 +814,16 @@ class SoundboardWindow(QMainWindow):
             self.audio_manager.audio_soundboard.setVolume(input_volume / 100)
     
     def _change_output_device(self) -> None:
-        """Change audio output device"""
         device_name = self.audio_devices.currentText()
         self.audio_manager.setup_audio_output(device_name)
         self.settings_manager.set("DefaultOutput", device_name)
     
     def _change_input_device(self) -> None:
-        """Change audio input device"""
         device_name = self.audio_input_devices.currentText()
         self.audio_manager.setup_audio_input(device_name)
         self.settings_manager.set("DefaultInput", device_name)
     @Slot()
     def _select_folder(self) -> None:
-        """Select sound folder"""
         self.select_folder_btn.isRunning = True
         self.select_folder_btn.update()
         selected_directory = QFileDialog.getExistingDirectory(
@@ -896,7 +843,6 @@ class SoundboardWindow(QMainWindow):
     
     @Slot(QModelIndex)
     def _on_keybind_button_clicked(self, index: QModelIndex) -> None:
-        """Handle keybind button click"""
         global pressed_key
         QTimer.singleShot(0, self.make_readonly)
         self.dialog.show()
@@ -911,7 +857,6 @@ class SoundboardWindow(QMainWindow):
         keyboard.hook(self._keyboard_input_hook)
 
     def _keyboard_input_hook(self, e) -> None:
-        """Hook keyboard input for keybind setting"""
         global pressed_key
         if e.event_type == "down":
             match e.name:
@@ -937,7 +882,6 @@ class SoundboardWindow(QMainWindow):
 
     @Slot(int)
     def _set_hotkey(self) -> None:
-        """Set hotkey for selected sound"""
         index = self.list_view.currentIndex()
         if not index.isValid():
             return 
@@ -953,7 +897,6 @@ class SoundboardWindow(QMainWindow):
         self.reload_list()
         
     def _filter_sound_list(self) -> None:
-        """Filter sound list based on search box input"""
         filter_text = self.search_box.toPlainText().lower()
         all_sounds = self.audio_manager.get_sound_list()
         
@@ -964,13 +907,11 @@ class SoundboardWindow(QMainWindow):
         
         self.model.setStringList(filtered_sounds)   
     def reload_list(self) -> None:
-        """Reload sound list and keybinds"""
         self._load_sounds()
         self.keybind_manager.save_keybinds()
         self.keybind_manager.load_keybinds()
     
     def _on_playback_state_changed(self, state) -> None:
-        """Handle media player state changes"""
         if state == QMediaPlayer.PlaybackState.StoppedState:
             self.now_playing.setText("Now Playing: None")
             self.now_playing.setStyleSheet("color: white; border: None;background: transparent;")
@@ -985,15 +926,14 @@ class SoundboardWindow(QMainWindow):
         if current_state & Qt.WindowMaximized:
             self.showNormal()
             self.overrideWindowState(Qt.WindowNoState)
-            #self.maximize_btn.setIcon(QIcon(ResourceManager.get_resource_path("maximize.png")))
+                                                                                                
         else:
             self.showMaximized()
             self.overrideWindowState(Qt.WindowMaximized)
-            #self.maximize_btn.setIcon(QIcon(ResourceManager.get_resource_path("normal.svg")))
+                                                                                              
             
-    # Public methods for sound playback
+                                       
     def play_sound(self) -> None:
-        """Play selected sound or pause/resume current playback"""
         current_state = self.audio_manager.player.playbackState()
         
         if current_state == QMediaPlayer.PlaybackState.StoppedState:
@@ -1015,52 +955,45 @@ class SoundboardWindow(QMainWindow):
     
     @Slot(str)
     def _play_sound_by_name(self, sound_name: str) -> bool:
-        """Play sound by name (for keybind triggers)"""
         try:
             if self.audio_manager.play_sound_file(sound_name):
                 self.now_playing.setText(f"Now Playing: {sound_name}")
                 self.now_playing.setStyleSheet("color: green; border: None")
                 return True
             else:
-                if sound_name:  # Only show error if sound name is not empty
+                if sound_name:                                              
                     QMessageBox.warning(self, "Error", "Sound file not found.")
                 return False
         except Exception:
             return False
     
     def _pause_sound(self) -> None:
-        """Pause current playback"""
         if self.audio_manager.player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
             self.audio_manager.player.pause()
             self.audio_manager.player2.pause()
     
     def stop_sound(self) -> None:
-        """Stop current playback"""
         current_state = self.audio_manager.player.playbackState()
         if current_state in [QMediaPlayer.PlaybackState.PlayingState, 
                            QMediaPlayer.PlaybackState.PausedState]:
             self.audio_manager.player.stop()
             self.audio_manager.player2.stop()
     
-    # Window event handlers
+                           
     def mousePressEvent(self, event) -> None:
-        """Handle mouse press for window dragging"""
         if event.button() == Qt.LeftButton:
             self.old_pos = event.globalPosition().toPoint()
 
     def mouseMoveEvent(self, event) -> None:
-        """Handle mouse move for window dragging"""
         if self.old_pos:
             delta = event.globalPosition().toPoint() - self.old_pos
             self.move(self.pos() + delta)
             self.old_pos = event.globalPosition().toPoint()
 
     def mouseReleaseEvent(self, event) -> None:
-        """Handle mouse release for window dragging"""
         self.old_pos = None
         
     def keyPressEvent(self, event) -> None:
-        """Handle key press events"""
         if event.key() == Qt.Key_Escape:
             self.close()
 
@@ -1080,7 +1013,6 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         self.activated.connect(self.onTrayIconActivated)
 
 class SoundboardApplication:
-    """Main application class"""
     
     def __init__(self):
         self.app = QApplication(sys.argv)
@@ -1088,20 +1020,17 @@ class SoundboardApplication:
         self.window = SoundboardWindow()
 
     def _setup_application(self) -> None:
-        """Setup application properties"""
-        #self.app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
+                                                                    
         self.app.setApplicationName("SoundBox by BanditRN")
         self.app.setApplicationVersion("1.0.0")
         self.app.setWindowIcon(QIcon(ResourceManager.get_resource_path("window_icon.png")))
     
     def run(self) -> int:
-        """Run the application"""
         self.window.show()
         return self.app.exec()
 
 
 def main():
-    """Main entry point"""
     try:
         app = SoundboardApplication()
 
