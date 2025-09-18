@@ -16,7 +16,7 @@ SoundBox is a feature-rich soundboard application built with Python and PySide6,
 
 Currently, SoundBox primarily supports `.mp3` `.wav` `.ogg` `.flac` audio files.
 
-## Installation & Setup:
+## Installing and Running from Source:
 
 1.  **Dependencies:** Ensure you have Python installed. All required Python libraries are listed in `requirements.txt`. You can install them using pip:
     ```bash
