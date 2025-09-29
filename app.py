@@ -1039,7 +1039,6 @@ class SoundboardWindow(QMainWindow):
                 self._set_resize_cursor(handle)
             else:
                 self.setCursor(Qt.ArrowCursor)
-                # Also set cursor on the frame
                 self.frame.setCursor(Qt.ArrowCursor)
 
     def mouseReleaseEvent(self, event) -> None:
