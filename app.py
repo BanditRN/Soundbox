@@ -396,6 +396,7 @@ class SoundboardWindow(QMainWindow):
                            QComboBox#audio_devices QListView, QComboBox#audio_input_devices QListView
                            {
                            border: 0px;
+                           background: radial-gradient(circle,rgba(5, 4, 4, 1) 59%, rgba(89, 89, 89, 0.66) 83%);
                            color: white;
                            }
                            QComboBox#audio_devices::drop-down:button, QComboBox#audio_input_devices::drop-down:button{
