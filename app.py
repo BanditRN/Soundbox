@@ -320,14 +320,44 @@ class HoverDelegate(QStyledItemDelegate):
         )
 
 
+class ResizableFrame(QFrame):
+    """Custom frame that handles resize cursor changes"""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent_window = parent
+        self.setMouseTracking(True)
+    
+    def mouseMoveEvent(self, event):
+        if self.parent_window:
+            handle = self.parent_window._get_resize_handle(event.pos())
+            if handle:
+                self.parent_window._set_resize_cursor(handle)
+            else:
+                self.setCursor(Qt.ArrowCursor)
+        super().mouseMoveEvent(event)
+    
+    def mousePressEvent(self, event):
+        if self.parent_window:
+            self.parent_window.mousePressEvent(event)
+        super().mousePressEvent(event)
+    
+    def mouseReleaseEvent(self, event):
+        if self.parent_window:
+            self.parent_window.mouseReleaseEvent(event)
+        super().mouseReleaseEvent(event)
+
+
 class SoundboardWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
         self.set_keybind = ""
         self.old_pos = None
-        
-                             
+        self.resizing = False
+        self.resize_handle = None
+        self.minimum_size = QSize(800, 600)
+        self.maximum_size = QSize(1200, 800)         
         self.settings_manager = SettingsManager()
         self.audio_manager = AudioManager(self.settings_manager)
         self.keybind_manager = KeybindManager(self)
@@ -341,6 +371,7 @@ class SoundboardWindow(QMainWindow):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.setMouseTracking(True)
         self.setStyleSheet("""
                            QWidget{
                            background: qlineargradient(x1:0 y1:0, x2:1 y2:1, stop:0 #051c2a stop:1 #44315f);
@@ -438,6 +469,9 @@ class SoundboardWindow(QMainWindow):
         self.setWindowIcon(QIcon(ResourceManager.get_resource_path("window_icon.png")))
         self.setWindowFlags(Qt.FramelessWindowHint)
         
+        # Set size constraints
+        self.setMinimumSize(self.minimum_size)
+        self.setMaximumSize(self.maximum_size)
                                  
         screen = QApplication.primaryScreen().availableGeometry()
         width, height = Config.WINDOW_SIZE
@@ -660,7 +694,8 @@ class SoundboardWindow(QMainWindow):
         
                       
         
-        self.frame = QFrame(self.central_widget)
+        self.frame = ResizableFrame(self.central_widget)
+        self.frame.parent_window = self
         self.frame.setFrameShape(QFrame.Shape.Box)
         self.frame.setFrameShadow(QFrame.Shadow.Plain)
         self.frame.setObjectName("mainFrame")
@@ -984,16 +1019,124 @@ class SoundboardWindow(QMainWindow):
     def mousePressEvent(self, event) -> None:
         if event.button() == Qt.LeftButton:
             self.old_pos = event.globalPosition().toPoint()
+            self.resize_handle = self._get_resize_handle(event.pos())
+            self.resizing = self.resize_handle is not None
 
     def mouseMoveEvent(self, event) -> None:
-        if self.old_pos:
+        if self.resizing and self.resize_handle and self.old_pos:
+            self._handle_resize(event)
+        elif self.old_pos and not self.resizing:
             delta = event.globalPosition().toPoint() - self.old_pos
             self.move(self.pos() + delta)
             self.old_pos = event.globalPosition().toPoint()
+        
+        
+        if not self.old_pos:
+            handle = self._get_resize_handle(event.pos())
+            if handle:
+                self._set_resize_cursor(handle)
+            else:
+                self.setCursor(Qt.ArrowCursor)
+                self.frame.setCursor(Qt.ArrowCursor)
 
     def mouseReleaseEvent(self, event) -> None:
         self.old_pos = None
+        self.resizing = False
+        self.resize_handle = None
+        self.setCursor(Qt.ArrowCursor)
+        if hasattr(self, 'frame'):
+            self.frame.setCursor(Qt.ArrowCursor)
         
+    def _get_resize_handle(self, pos):
+        
+        width = self.width()
+        height = self.height()
+        margin = 8  
+        
+       
+        if pos.x() <= margin and pos.y() <= margin:
+            return 'top-left'
+        elif pos.x() >= width - margin and pos.y() <= margin:
+            return 'top-right'
+        elif pos.x() <= margin and pos.y() >= height - margin:
+            return 'bottom-left'
+        elif pos.x() >= width - margin and pos.y() >= height - margin:
+            return 'bottom-right'
+        
+        elif pos.x() <= margin:
+            return 'left'
+        elif pos.x() >= width - margin:
+            return 'right'
+        elif pos.y() <= margin:
+            return 'top'
+        elif pos.y() >= height - margin:
+            return 'bottom'
+        return None
+    
+    def _set_resize_cursor(self, handle):
+        """Set the appropriate cursor for the resize handle"""
+        cursor_map = {
+            'top-left': Qt.SizeFDiagCursor,
+            'top-right': Qt.SizeBDiagCursor,
+            'bottom-left': Qt.SizeBDiagCursor,
+            'bottom-right': Qt.SizeFDiagCursor,
+            'left': Qt.SizeHorCursor,
+            'right': Qt.SizeHorCursor,
+            'top': Qt.SizeVerCursor,
+            'bottom': Qt.SizeVerCursor
+        }
+        cursor = cursor_map.get(handle, Qt.ArrowCursor)
+        self.setCursor(cursor)
+        if hasattr(self, 'frame'):
+            self.frame.setCursor(cursor)
+    
+    def _handle_resize(self, event):
+        
+        if not self.old_pos:
+            return
+            
+        delta = event.globalPosition().toPoint() - self.old_pos
+        current_geometry = self.geometry()
+        new_geometry = current_geometry
+        
+       
+        if self.resize_handle == 'top-left':
+            new_geometry.setTopLeft(current_geometry.topLeft() + delta)
+        elif self.resize_handle == 'top-right':
+            new_geometry.setTopRight(current_geometry.topRight() + delta)
+        elif self.resize_handle == 'bottom-left':
+            new_geometry.setBottomLeft(current_geometry.bottomLeft() + delta)
+        elif self.resize_handle == 'bottom-right':
+            new_geometry.setBottomRight(current_geometry.bottomRight() + delta)
+        elif self.resize_handle == 'left':
+            new_geometry.setLeft(current_geometry.left() + delta.x())
+        elif self.resize_handle == 'right':
+            new_geometry.setRight(current_geometry.right() + delta.x())
+        elif self.resize_handle == 'top':
+            new_geometry.setTop(current_geometry.top() + delta.y())
+        elif self.resize_handle == 'bottom':
+            new_geometry.setBottom(current_geometry.bottom() + delta.y())
+        
+       
+        new_size = new_geometry.size()
+        new_size = new_size.expandedTo(self.minimum_size)
+        new_size = new_size.boundedTo(self.maximum_size)
+   
+        if new_size != new_geometry.size():
+            if new_size.width() != new_geometry.width():
+                if self.resize_handle in ['left', 'top-left', 'bottom-left']:
+                    new_geometry.setLeft(new_geometry.right() - new_size.width())
+                else:
+                    new_geometry.setRight(new_geometry.left() + new_size.width())
+            if new_size.height() != new_geometry.height():
+                if self.resize_handle in ['top', 'top-left', 'top-right']:
+                    new_geometry.setTop(new_geometry.bottom() - new_size.height())
+                else:
+                    new_geometry.setBottom(new_geometry.top() + new_size.height())
+        
+        self.setGeometry(new_geometry)
+        self.old_pos = event.globalPosition().toPoint()
+
     def keyPressEvent(self, event) -> None:
         if event.key() == Qt.Key_Escape:
             self.close()
@@ -1065,9 +1208,9 @@ class SoundboardApplication:
 def main():
     try:
         lockfile = QtCore.QLockFile(QtCore.QDir.tempPath() + '/Soundbox.lock')
+        global app
+        app = QApplication(sys.argv)
         if lockfile.tryLock(100):
-            global app
-            app = QApplication(sys.argv)
             movie = QMovie(ResourceManager.get_resource_path("splashscreen.gif"))
             movie.setScaledSize(QSize(400, 400))
             movie.setCacheMode(QMovie.CacheMode.CacheAll)
