@@ -320,6 +320,34 @@ class HoverDelegate(QStyledItemDelegate):
         )
 
 
+class ResizableFrame(QFrame):
+    """Custom frame that handles resize cursor changes"""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent_window = parent
+        self.setMouseTracking(True)
+    
+    def mouseMoveEvent(self, event):
+        if self.parent_window:
+            handle = self.parent_window._get_resize_handle(event.pos())
+            if handle:
+                self.parent_window._set_resize_cursor(handle)
+            else:
+                self.setCursor(Qt.ArrowCursor)
+        super().mouseMoveEvent(event)
+    
+    def mousePressEvent(self, event):
+        if self.parent_window:
+            self.parent_window.mousePressEvent(event)
+        super().mousePressEvent(event)
+    
+    def mouseReleaseEvent(self, event):
+        if self.parent_window:
+            self.parent_window.mouseReleaseEvent(event)
+        super().mouseReleaseEvent(event)
+
+
 class SoundboardWindow(QMainWindow):
     
     def __init__(self):
@@ -668,7 +696,8 @@ class SoundboardWindow(QMainWindow):
         
                       
         
-        self.frame = QFrame(self.central_widget)
+        self.frame = ResizableFrame(self.central_widget)
+        self.frame.parent_window = self
         self.frame.setFrameShape(QFrame.Shape.Box)
         self.frame.setFrameShadow(QFrame.Shadow.Plain)
         self.frame.setObjectName("mainFrame")
@@ -1018,7 +1047,8 @@ class SoundboardWindow(QMainWindow):
         self.resizing = False
         self.resize_handle = None
         self.setCursor(Qt.ArrowCursor)
-        self.frame.setCursor(Qt.ArrowCursor)
+        if hasattr(self, 'frame'):
+            self.frame.setCursor(Qt.ArrowCursor)
         
     def _get_resize_handle(self, pos):
         """Determine which resize handle the mouse is over"""
@@ -1060,7 +1090,8 @@ class SoundboardWindow(QMainWindow):
         }
         cursor = cursor_map.get(handle, Qt.ArrowCursor)
         self.setCursor(cursor)
-        self.frame.setCursor(cursor)
+        if hasattr(self, 'frame'):
+            self.frame.setCursor(cursor)
     
     def _handle_resize(self, event):
         """Handle the resize operation"""
