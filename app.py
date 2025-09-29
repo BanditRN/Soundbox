@@ -1068,7 +1068,7 @@ def main():
         if lockfile.tryLock(100):
             global app
             app = QApplication(sys.argv)
-            movie = QMovie("splashscreen.gif")
+            movie = QMovie(ResourceManager.get_resource_path("splashscreen.gif"))
             movie.setScaledSize(QSize(400, 400))
             movie.setCacheMode(QMovie.CacheMode.CacheAll)
 
