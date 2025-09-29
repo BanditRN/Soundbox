@@ -5,15 +5,14 @@ import keyboard
 from typing import List, Dict, Any
 
 from PySide6 import QtCore, QtWidgets, QtGui
-from PySide6.QtCore import Qt, QSize, QRect, QUrl, Signal, Slot, QModelIndex, QMetaObject, QStringListModel,QTimer
+from PySide6.QtCore import Qt, QSize, QRect, QUrl, Signal, Slot, QModelIndex, QMetaObject, QStringListModel,QTimer, SLOT,SIGNAL,QEventLoop
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                                QListView, QPushButton, QSlider, QLabel, QComboBox, QFrame,
                                QStyledItemDelegate, QInputDialog, QMessageBox, QFileDialog,
-                               QAbstractItemView, QStyle , QTextEdit)
-from PySide6.QtGui import QIcon, QFont
+                               QAbstractItemView, QStyle , QTextEdit , QSplashScreen)
+from PySide6.QtGui import QIcon, QFont, QPixmap, QMovie,QPainter
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput, QMediaDevices
-
-import time
+from multiprocessing import Pool
 from pyqt_loading_button import LoadingButton, AnimationType
 import winaccent
 
@@ -24,7 +23,8 @@ class Config:
         os.mkdir(os.getenv('APPDATA')+'\\Soundbox')
     KEYBINDS_FILE = os.getenv('APPDATA') + '\\Soundbox\\keybinds.json'
     SETTINGS_FILE = os.getenv('APPDATA') + '\\Soundbox\\settings.json'
-    
+    LOG_FILE = os.getenv('APPDATA') + '\\Soundbox\\log.txt'
+
     DEFAULT_SETTINGS = {
         "Directory": "",
         "DefaultOutput": "",
@@ -151,9 +151,15 @@ class KeybindManager:
         self.parent = parent
         self.keybinds = {}
         self.keybinds_json = {}
-    
+
+    def _setup_fixed_stop(self) -> None:
+        keyboard.add_hotkey('backspace', lambda: QMetaObject.invokeMethod(
+            self.parent, "_hotkey_stop", Qt.QueuedConnection))
+        
     def load_keybinds(self) -> None:
         try:
+            keyboard.unhook_all()
+            self._setup_fixed_stop()
             with open(Config.KEYBINDS_FILE, 'r') as f:
                 self.keybinds_json = json.load(f)
             
@@ -172,6 +178,7 @@ class KeybindManager:
             self._create_default_keybinds()
     
     def _create_default_keybinds(self) -> None:
+        self._setup_fixed_stop()
         sound_list = self.parent.audio_manager.get_sound_list()
         for item in sound_list:
             self.keybinds_json[item] = ""
@@ -326,7 +333,6 @@ class SoundboardWindow(QMainWindow):
         self.keybind_manager = KeybindManager(self)
         
         self._setup_window()
-        self._setup_global_hotkeys()
         self._create_widgets()
         self._setup_layouts()
         self._connect_signals()
@@ -441,12 +447,7 @@ class SoundboardWindow(QMainWindow):
         
         
     
-    def _setup_global_hotkeys(self) -> None:
-                                                                        
-                                                         
-        
-        keyboard.add_hotkey('backspace', lambda: QMetaObject.invokeMethod(
-            self, "_hotkey_stop", Qt.QueuedConnection))
+
     
     def _create_widgets(self) -> None:
         self.central_widget = QWidget()
@@ -997,46 +998,95 @@ class SoundboardWindow(QMainWindow):
         if event.key() == Qt.Key_Escape:
             self.close()
 
-class TrayIcon(QtWidgets.QSystemTrayIcon):
-    def __init__(self, icon, parent=None):
-        super().__init__(icon, parent)
-        self.setToolTip('SoundBox')
-        menu = QtWidgets.QMenu(parent)
+# class TrayIcon(QtWidgets.QSystemTrayIcon):
+#     def __init__(self, icon, parent=None):
+#         super().__init__(icon, parent)
+#         self.setToolTip('SoundBox')
+#         menu = QtWidgets.QMenu(parent)
         
-        show_action = menu.addAction("Show")
-        quit_action = menu.addAction("Quit")
+#         show_action = menu.addAction("Show")
+#         quit_action = menu.addAction("Quit")
         
-        show_action.triggered.connect(parent.showNormal)
-        quit_action.triggered.connect(QApplication.instance().quit)
+#         show_action.triggered.connect(parent.showNormal)
+#         quit_action.triggered.connect(QApplication.instance().quit)
         
-        self.setContextMenu(menu)
-        self.activated.connect(self.onTrayIconActivated)
+#         self.setContextMenu(menu)
+#         self.activated.connect(self.onTrayIconActivated)
+
+class LoadingScreen(QSplashScreen):
+    def __init__(self, movie, parent = None):
+        
+        movie.jumpToFrame(0)
+        pixmap = QPixmap(movie.frameRect().size())
+           
+        QSplashScreen.__init__(self, pixmap)
+        self.movie = movie
+        self.movie.frameChanged.connect(self.repaint)
+        
+        self.setStyleSheet("border-radius: 10px;")
+    def showEvent(self, event):
+         self.movie.start()
+      
+    def hideEvent(self, event):
+        self.movie.stop()
+    
+    def paintEvent(self, event):
+    
+        painter = QPainter(self)
+        pixmap = self.movie.currentPixmap()
+        self.setMask(pixmap.mask())
+        painter.drawPixmap(0, 0, pixmap)
+
+    def sizeHint(self):
+    
+        return self.movie.scaledSize()
+  
+
+    @Slot()
+    def onNextFrame(self):
+        pixmap = self.movie.currentPixmap()
+        self.setPixmap(pixmap)
+        self.setMask(pixmap.mask())
 
 class SoundboardApplication:
     
     def __init__(self):
-        self.app = QApplication(sys.argv)
-        self._setup_application()
-        self.window = SoundboardWindow()
+        app.setApplicationName("SoundBox by BanditRN")
+        app.setApplicationVersion("0.2.1")
+        app.setWindowIcon(QIcon(ResourceManager.get_resource_path("window_icon.png")))                        
 
-    def _setup_application(self) -> None:
-                                                                    
-        self.app.setApplicationName("SoundBox by BanditRN")
-        self.app.setApplicationVersion("1.0.0")
-        self.app.setWindowIcon(QIcon(ResourceManager.get_resource_path("window_icon.png")))
-    
     def run(self) -> int:
+        self.window = SoundboardWindow()
         self.window.show()
-        return self.app.exec()
+        splash.finish(self.window)
+        return app.exec()
 
 
 def main():
     try:
-        app = SoundboardApplication()
+        lockfile = QtCore.QLockFile(QtCore.QDir.tempPath() + '/Soundbox.lock')
+        if lockfile.tryLock(100):
+            global app
+            app = QApplication(sys.argv)
+            movie = QMovie("splashscreen.gif")
+            movie.setScaledSize(QSize(400, 400))
+            movie.setCacheMode(QMovie.CacheMode.CacheAll)
 
-        sys.exit(app.run())
+            global splash
+            splash = LoadingScreen(movie)
+            splash.setEnabled(False)
+            splash.show()
+            while movie.state() == QMovie.Running and movie.currentFrameNumber() < movie.frameCount() - 1:
+                app.processEvents()
+            MainApp = SoundboardApplication()
+            sys.exit(MainApp.run())
+        else:
+            QMessageBox.warning(None, "Warning", "Another instance of SoundBox is already running.")
+            sys.exit(0)
     except Exception as e:
-        print(f"Application error: {e}")
+        with open(Config.LOG_FILE,"w") as f:
+            f.write(f"Application error: {str(e)}")
+        print(e)
         sys.exit(1)
 
 
