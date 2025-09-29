@@ -326,6 +326,10 @@ class SoundboardWindow(QMainWindow):
         super().__init__()
         self.set_keybind = ""
         self.old_pos = None
+        self.resizing = False
+        self.resize_handle = None
+        self.minimum_size = QSize(400, 300)
+        self.maximum_size = QSize(1200, 800)
         
                              
         self.settings_manager = SettingsManager()
@@ -438,6 +442,9 @@ class SoundboardWindow(QMainWindow):
         self.setWindowIcon(QIcon(ResourceManager.get_resource_path("window_icon.png")))
         self.setWindowFlags(Qt.FramelessWindowHint)
         
+        # Set size constraints
+        self.setMinimumSize(self.minimum_size)
+        self.setMaximumSize(self.maximum_size)
                                  
         screen = QApplication.primaryScreen().availableGeometry()
         width, height = Config.WINDOW_SIZE
@@ -984,16 +991,118 @@ class SoundboardWindow(QMainWindow):
     def mousePressEvent(self, event) -> None:
         if event.button() == Qt.LeftButton:
             self.old_pos = event.globalPosition().toPoint()
+            self.resize_handle = self._get_resize_handle(event.pos())
+            self.resizing = self.resize_handle is not None
 
     def mouseMoveEvent(self, event) -> None:
-        if self.old_pos:
+        if self.resizing and self.resize_handle and self.old_pos:
+            self._handle_resize(event)
+        elif self.old_pos and not self.resizing:
             delta = event.globalPosition().toPoint() - self.old_pos
             self.move(self.pos() + delta)
             self.old_pos = event.globalPosition().toPoint()
+        else:
+            # Update cursor based on resize handle
+            handle = self._get_resize_handle(event.pos())
+            if handle:
+                self._set_resize_cursor(handle)
+            else:
+                self.setCursor(Qt.ArrowCursor)
 
     def mouseReleaseEvent(self, event) -> None:
         self.old_pos = None
+        self.resizing = False
+        self.resize_handle = None
+        self.setCursor(Qt.ArrowCursor)
         
+    def _get_resize_handle(self, pos):
+        """Determine which resize handle the mouse is over"""
+        width = self.width()
+        height = self.height()
+        margin = 8  # Resize handle margin
+        
+        # Check corners first (they take priority)
+        if pos.x() <= margin and pos.y() <= margin:
+            return 'top-left'
+        elif pos.x() >= width - margin and pos.y() <= margin:
+            return 'top-right'
+        elif pos.x() <= margin and pos.y() >= height - margin:
+            return 'bottom-left'
+        elif pos.x() >= width - margin and pos.y() >= height - margin:
+            return 'bottom-right'
+        # Check edges
+        elif pos.x() <= margin:
+            return 'left'
+        elif pos.x() >= width - margin:
+            return 'right'
+        elif pos.y() <= margin:
+            return 'top'
+        elif pos.y() >= height - margin:
+            return 'bottom'
+        return None
+    
+    def _set_resize_cursor(self, handle):
+        """Set the appropriate cursor for the resize handle"""
+        cursor_map = {
+            'top-left': Qt.SizeFDiagCursor,
+            'top-right': Qt.SizeBDiagCursor,
+            'bottom-left': Qt.SizeBDiagCursor,
+            'bottom-right': Qt.SizeFDiagCursor,
+            'left': Qt.SizeHorCursor,
+            'right': Qt.SizeHorCursor,
+            'top': Qt.SizeVerCursor,
+            'bottom': Qt.SizeVerCursor
+        }
+        self.setCursor(cursor_map.get(handle, Qt.ArrowCursor))
+    
+    def _handle_resize(self, event):
+        """Handle the resize operation"""
+        if not self.old_pos:
+            return
+            
+        delta = event.globalPosition().toPoint() - self.old_pos
+        current_geometry = self.geometry()
+        new_geometry = current_geometry
+        
+        # Apply resize based on handle
+        if self.resize_handle == 'top-left':
+            new_geometry.setTopLeft(current_geometry.topLeft() + delta)
+        elif self.resize_handle == 'top-right':
+            new_geometry.setTopRight(current_geometry.topRight() + delta)
+        elif self.resize_handle == 'bottom-left':
+            new_geometry.setBottomLeft(current_geometry.bottomLeft() + delta)
+        elif self.resize_handle == 'bottom-right':
+            new_geometry.setBottomRight(current_geometry.bottomRight() + delta)
+        elif self.resize_handle == 'left':
+            new_geometry.setLeft(current_geometry.left() + delta.x())
+        elif self.resize_handle == 'right':
+            new_geometry.setRight(current_geometry.right() + delta.x())
+        elif self.resize_handle == 'top':
+            new_geometry.setTop(current_geometry.top() + delta.y())
+        elif self.resize_handle == 'bottom':
+            new_geometry.setBottom(current_geometry.bottom() + delta.y())
+        
+        # Apply size constraints
+        new_size = new_geometry.size()
+        new_size = new_size.expandedTo(self.minimum_size)
+        new_size = new_size.boundedTo(self.maximum_size)
+        
+        # Update geometry with constraints
+        if new_size != new_geometry.size():
+            if new_size.width() != new_geometry.width():
+                if self.resize_handle in ['left', 'top-left', 'bottom-left']:
+                    new_geometry.setLeft(new_geometry.right() - new_size.width())
+                else:
+                    new_geometry.setRight(new_geometry.left() + new_size.width())
+            if new_size.height() != new_geometry.height():
+                if self.resize_handle in ['top', 'top-left', 'top-right']:
+                    new_geometry.setTop(new_geometry.bottom() - new_size.height())
+                else:
+                    new_geometry.setBottom(new_geometry.top() + new_size.height())
+        
+        self.setGeometry(new_geometry)
+        self.old_pos = event.globalPosition().toPoint()
+
     def keyPressEvent(self, event) -> None:
         if event.key() == Qt.Key_Escape:
             self.close()
