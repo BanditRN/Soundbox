@@ -345,6 +345,7 @@ class SoundboardWindow(QMainWindow):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.setMouseTracking(True)
         self.setStyleSheet("""
                            QWidget{
                            background: qlineargradient(x1:0 y1:0, x2:1 y2:1, stop:0 #051c2a stop:1 #44315f);
@@ -1001,19 +1002,23 @@ class SoundboardWindow(QMainWindow):
             delta = event.globalPosition().toPoint() - self.old_pos
             self.move(self.pos() + delta)
             self.old_pos = event.globalPosition().toPoint()
-        else:
-            # Update cursor based on resize handle
+        
+        # Update cursor based on resize handle (always when not dragging)
+        if not self.old_pos:
             handle = self._get_resize_handle(event.pos())
             if handle:
                 self._set_resize_cursor(handle)
             else:
                 self.setCursor(Qt.ArrowCursor)
+                # Also set cursor on the frame
+                self.frame.setCursor(Qt.ArrowCursor)
 
     def mouseReleaseEvent(self, event) -> None:
         self.old_pos = None
         self.resizing = False
         self.resize_handle = None
         self.setCursor(Qt.ArrowCursor)
+        self.frame.setCursor(Qt.ArrowCursor)
         
     def _get_resize_handle(self, pos):
         """Determine which resize handle the mouse is over"""
@@ -1053,7 +1058,9 @@ class SoundboardWindow(QMainWindow):
             'top': Qt.SizeVerCursor,
             'bottom': Qt.SizeVerCursor
         }
-        self.setCursor(cursor_map.get(handle, Qt.ArrowCursor))
+        cursor = cursor_map.get(handle, Qt.ArrowCursor)
+        self.setCursor(cursor)
+        self.frame.setCursor(cursor)
     
     def _handle_resize(self, event):
         """Handle the resize operation"""
