@@ -431,34 +431,6 @@ class SoundboardWindow(QMainWindow):
         self.minimize_animation = None
         self.keybind_manager.load_keybinds()
         
-    def changeEvent(self, event):
-        if event.type() == QtCore.QEvent.Type.WindowStateChange:
-            if self.isMinimized():
-                                                   
-                event.ignore() 
-                self.start_minimize_animation()
-            elif self.isMaximized() or self.isModal():
-                                                      
-                pass
-        super().changeEvent(event)
-    def start_minimize_animation(self):
-                                                
-        self._original_geometry = self.geometry()
-
-                                  
-        self.minimize_animation = QtCore.QPropertyAnimation(self, b"geometry")
-        self.minimize_animation.setDuration(500)               
-        self.minimize_animation.setStartValue(self.geometry())
-                                                                           
-        end_rect = self.geometry().adjusted(self.width() // 2, self.height() // 2, -self.width() // 2, -self.height() // 2)
-        end_rect.moveTo(self.screen().geometry().bottomRight() - QSize(50, 50))                 
-        self.minimize_animation.setEndValue(end_rect)
-
-                                                                   
-        self.minimize_animation.finished.connect(self._finish_minimize)
-        self.minimize_animation.start()
-    def _finish_minimize(self):
-        self.showMinimized()
 
     def showNormal(self):
         if hasattr(self, '_original_geometry'):
