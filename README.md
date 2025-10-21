@@ -46,7 +46,7 @@ SoundBox generates two configuration files upon its first run:
 *   `settings.json`: Stores your selected sound directory, default audio output/input devices, and volume levels.
 *   `keybinds.json`: Stores the mappings between your sound files and their assigned global hotkeys.
 
-*Troubleshooting Tip: If the application encounters issues, deleting `settings.json` and `keybinds.json` and relaunching the app can often resolve them.*
+*Troubleshooting Tip: If the application encounters issues, deleting `settings.json` and `keybinds.json` located in `C:\Users\USERNAME\Appdata\Roaming\Soundbox`and relaunching the app can often resolve them.*
 
 ## Known Issues & Notes:
 
