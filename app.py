@@ -496,11 +496,11 @@ class SoundboardWindow(QMainWindow):
         self.seek_slider.setDisabled(True)
 
     def _create_start_end_labels(self) -> None:
-        self.start_label = QLabel("0:00")
+        self.start_label = QLabel("00:00")
         self.start_label.setFont(QFont("Arial", 10))
         self.start_label.setStyleSheet("border: none;background: transparent;")
         
-        self.end_label = QLabel("0:00")
+        self.end_label = QLabel("00:00")
         self.end_label.setFont(QFont("Arial", 10))
         self.end_label.setStyleSheet("border: none;background: transparent;")
 
@@ -765,8 +765,11 @@ class SoundboardWindow(QMainWindow):
         v_layout.addWidget(self.list_view)
         v_layout.addLayout(controls_layout)
         seek_layout = QHBoxLayout()
+        
         seek_layout.addWidget(self.start_label, alignment=Qt.AlignLeft)
+        seek_layout.addSpacing(10)
         seek_layout.addWidget(self.seek_slider)
+        seek_layout.addSpacing(10)
         seek_layout.addWidget(self.end_label, alignment=Qt.AlignRight)
         v_layout.addLayout(seek_layout)
         v_layout.addLayout(bottom_layout)
@@ -814,14 +817,14 @@ class SoundboardWindow(QMainWindow):
 
     def _reset_slider(self) -> None:
         self.seek_slider.setMaximum(self.audio_manager.player.duration())
-        self.end_label.setText(str(self.audio_manager.player.duration()/1000).replace('.',":"))
+        self.end_label.setText(self.ms_to_hms(str(self.audio_manager.player.duration())))
         self.seek_slider.setValue(0)
 
     def _disconnect_slider(self)-> None:
         self.audio_manager.player.positionChanged.disconnect(self._set_seek_slider_value) 
 
     def _set_seek_slider_value(self) -> None:
-        self.start_label.setText(str(round(self.audio_manager.player.position()/1000,2)).replace('.',":"))
+        self.start_label.setText(self.ms_to_hms(str(self.audio_manager.player.position())))
         self.seek_slider.setValue(self.audio_manager.player.position())
 
     def _set_players_index(self)-> None:
@@ -830,6 +833,12 @@ class SoundboardWindow(QMainWindow):
         self.audio_manager.player.setPosition(self.seek_slider.value())
         self.audio_manager.player.positionChanged.connect(self._set_seek_slider_value)  
         
+    def ms_to_hms(self, ms_str):
+        ms = int(re.match(r'^(\d+)$', ms_str).group(1))
+        hours = ms // (1000 * 60 * 60)
+        minutes = (ms // (1000 * 60)) % 60
+        seconds = (ms // 1000) % 60
+        return f"{minutes:02d}:{seconds:02d}"
 
     def _initialize_audio(self) -> None:
         self.settings_manager.update_environment_variables()
