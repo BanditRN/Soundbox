@@ -809,22 +809,27 @@ class SoundboardWindow(QMainWindow):
         self.audio_manager.player.tracksChanged.connect(self._reset_slider)
         self.audio_manager.player.positionChanged.connect(self._set_seek_slider_value)                    
         self.audio_manager.player.playbackStateChanged.connect(self._on_playback_state_changed)
-        self.seek_slider.actionTriggered.connect(self._set_players_index)
-        self.seek_slider.setSingleStep(100)
-        self.current_pos = 0
-        
+        self.seek_slider.sliderPressed.connect(self._disconnect_slider)
+        self.seek_slider.sliderReleased.connect(self._set_players_index)
+
     def _reset_slider(self) -> None:
         self.seek_slider.setMaximum(self.audio_manager.player.duration())
-        self.end_label.setText(str(self.audio_manager.player.duration()/1000))
+        self.end_label.setText(str(self.audio_manager.player.duration()/1000).replace('.',":"))
         self.seek_slider.setValue(0)
+
+    def _disconnect_slider(self)-> None:
+        self.audio_manager.player.positionChanged.disconnect(self._set_seek_slider_value) 
 
     def _set_seek_slider_value(self) -> None:
         self.start_label.setText(str(round(self.audio_manager.player.position()/1000,2)).replace('.',":"))
         self.seek_slider.setValue(self.audio_manager.player.position())
 
-    def _set_players_index(self, action)-> None:
+    def _set_players_index(self)-> None:
+
         self.audio_manager.player2.setPosition(self.seek_slider.value())
         self.audio_manager.player.setPosition(self.seek_slider.value())
+        self.audio_manager.player.positionChanged.connect(self._set_seek_slider_value)  
+        
 
     def _initialize_audio(self) -> None:
         self.settings_manager.update_environment_variables()
