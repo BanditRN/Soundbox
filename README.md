@@ -22,7 +22,7 @@ Currently, SoundBox primarily supports `.mp3` `.wav` `.ogg` `.flac` audio files.
     ```bash
     pip install -r requirements.txt
     ```
-    *Note: This project uses `PySide6`, `[keyboard](https://github.com/boppreh/keyboard)`, `pyqt_loading_button`, and `[winaccent](https://github.com/Valer100/winaccent)`.*
+    *Note: This project uses `PySide6`, [`keyboard`](https://github.com/boppreh/keyboard), `pyqt_loading_button`, and [`winaccent`](https://github.com/Valer100/winaccent).*
 
 2.  **Audio Routing (Recommended):** For advanced audio routing, it is highly recommended to use a virtual audio cable solution like [VB-Audio Virtual Cable](https://vb-audio.com/Cable/).
 
