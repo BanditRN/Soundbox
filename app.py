@@ -3,7 +3,7 @@ import os
 import json
 import keyboard
 from typing import List, Dict, Any
-
+import re
 from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtCore import Qt, QSize, QRect, QUrl, Signal, Slot, QModelIndex, QMetaObject, QStringListModel,QTimer, SLOT,SIGNAL,QEventLoop
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
@@ -481,6 +481,29 @@ class SoundboardWindow(QMainWindow):
                         
         self._create_keybind_dialog()
 
+
+        self._create_seek_slider()
+
+        self._create_start_end_labels()
+
+        
+    def _create_seek_slider(self) -> None:
+        self.seek_slider = QSlider(Qt.Horizontal)
+        self.seek_slider.setValue(0)
+        self.seek_slider.setStyleSheet("border: 0px;background: transparent;")
+        self.seek_slider.setCursor(Qt.PointingHandCursor)
+        self.seek_slider.setFocusPolicy(Qt.NoFocus)
+        self.seek_slider.setDisabled(True)
+
+    def _create_start_end_labels(self) -> None:
+        self.start_label = QLabel("0:00")
+        self.start_label.setFont(QFont("Arial", 10))
+        self.start_label.setStyleSheet("border: none;background: transparent;")
+        
+        self.end_label = QLabel("0:00")
+        self.end_label.setFont(QFont("Arial", 10))
+        self.end_label.setStyleSheet("border: none;background: transparent;")
+
     def _create_media_buttons(self) -> None:
         self.play_button = self._create_icon_button("play.png", (70, 50), (50, 50))
         self.stop_button = self._create_icon_button("stop.webp", (70, 50), (50, 50))
@@ -741,6 +764,11 @@ class SoundboardWindow(QMainWindow):
         v_layout.addLayout(hlayout)
         v_layout.addWidget(self.list_view)
         v_layout.addLayout(controls_layout)
+        seek_layout = QHBoxLayout()
+        seek_layout.addWidget(self.start_label, alignment=Qt.AlignLeft)
+        seek_layout.addWidget(self.seek_slider)
+        seek_layout.addWidget(self.end_label, alignment=Qt.AlignRight)
+        v_layout.addLayout(seek_layout)
         v_layout.addLayout(bottom_layout)
         v_layout.addWidget(self.select_folder_btn)
         
@@ -778,10 +806,26 @@ class SoundboardWindow(QMainWindow):
         self.dialog.finished.connect(self.unhook_keybind)
         self.dialog.finished.connect(lambda: self.setEnabled(True))
         self.reload_button.clicked.connect(self.reload_list)
-        
-                              
+        self.audio_manager.player.tracksChanged.connect(self._reset_slider)
+        self.audio_manager.player.positionChanged.connect(self._set_seek_slider_value)                    
         self.audio_manager.player.playbackStateChanged.connect(self._on_playback_state_changed)
-    
+        self.seek_slider.actionTriggered.connect(self._set_players_index)
+        self.seek_slider.setSingleStep(100)
+        self.current_pos = 0
+        
+    def _reset_slider(self) -> None:
+        self.seek_slider.setMaximum(self.audio_manager.player.duration())
+        self.end_label.setText(str(self.audio_manager.player.duration()/1000))
+        self.seek_slider.setValue(0)
+
+    def _set_seek_slider_value(self) -> None:
+        self.start_label.setText(str(round(self.audio_manager.player.position()/1000,2)).replace('.',":"))
+        self.seek_slider.setValue(self.audio_manager.player.position())
+
+    def _set_players_index(self, action)-> None:
+        self.audio_manager.player2.setPosition(self.seek_slider.value())
+        self.audio_manager.player.setPosition(self.seek_slider.value())
+
     def _initialize_audio(self) -> None:
         self.settings_manager.update_environment_variables()
         self._change_output_device()
@@ -925,10 +969,13 @@ class SoundboardWindow(QMainWindow):
             self.now_playing.setText("Now Playing: None")
             self.now_playing.setStyleSheet("color: white; border: None;background: transparent;")
             self.play_button.setIcon(QIcon(ResourceManager.get_resource_path("play.png")))
+            self.seek_slider.setDisabled(True)
         elif state == QMediaPlayer.PlaybackState.PausedState:
             self.play_button.setIcon(QIcon(ResourceManager.get_resource_path("play.png")))
+            self.seek_slider.setEnabled(True)
         elif state == QMediaPlayer.PlaybackState.PlayingState:
             self.play_button.setIcon(QIcon(ResourceManager.get_resource_path("pause.png")))
+            self.seek_slider.setEnabled(True)
     
     def _toggle_maximize(self) -> None:
         current_state = self.windowState() 
