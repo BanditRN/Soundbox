@@ -299,6 +299,7 @@ class HoverDelegate(QStyledItemDelegate):
             button_option = QtWidgets.QStyleOptionButton()
             button_option.rect = self._get_button_rect(option)
             button_option.text = "Set Key"
+            
             button_option.state = QStyle.State_Enabled | QStyle.State_Raised
             QApplication.style().drawControl(QStyle.CE_PushButton, button_option, painter)
 
@@ -311,7 +312,7 @@ class HoverDelegate(QStyledItemDelegate):
         return super().editorEvent(event, model, option, index)
 
     def _get_button_rect(self, option) -> QRect:
-        button_width, button_height = 80, 20
+        button_width, button_height = 80, 25
         return QRect(
             option.rect.right() - button_width - 5,
             option.rect.top() + (option.rect.height() - button_height) // 2,
@@ -420,7 +421,21 @@ class SoundboardWindow(QMainWindow):
                             padding-top: 2px;
                             padding-bottom: 2px;
                             color: white;
-
+                            }
+                            QListView::item:hover{
+                            background: rgba(255, 255, 255, 0.1);
+                            border-radius: 5px;
+                            border: None;
+                            height: 40px;
+                            }
+                            QListView::item:selected{
+                            background: rgba(255, 255, 255, 0.2);
+                            border-radius: 5px;
+                            
+                            }
+                            QListView:focus{
+                            outline: None;
+                            
                             }
                             QTextEdit{
                             color: white;
