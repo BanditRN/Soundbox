@@ -22,7 +22,7 @@ Currently, SoundBox primarily supports `.mp3` `.wav` `.ogg` `.flac` audio files.
     ```bash
     pip install -r requirements.txt
     ```
-    *Note: This project uses `PySide6`, `keyboard`, `pyqt_loading_button`, and `winaccent`.*
+    *Note: This project uses `PySide6`, [`keyboard`](https://github.com/boppreh/keyboard), `pyqt_loading_button`, and [`winaccent`](https://github.com/Valer100/winaccent).*
 
 2.  **Audio Routing (Recommended):** For advanced audio routing, it is highly recommended to use a virtual audio cable solution like [VB-Audio Virtual Cable](https://vb-audio.com/Cable/).
 
@@ -46,7 +46,7 @@ SoundBox generates two configuration files upon its first run:
 *   `settings.json`: Stores your selected sound directory, default audio output/input devices, and volume levels.
 *   `keybinds.json`: Stores the mappings between your sound files and their assigned global hotkeys.
 
-*Troubleshooting Tip: If the application encounters issues, deleting `settings.json` and `keybinds.json` and relaunching the app can often resolve them.*
+*Troubleshooting Tip: If the application encounters issues, deleting `settings.json` and `keybinds.json` located in `C:\Users\USERNAME\Appdata\Roaming\Soundbox`and relaunching the app can often resolve them.*
 
 ## Known Issues & Notes:
 
