@@ -15,6 +15,8 @@ from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput, QMediaDevices
 from multiprocessing import Pool
 from pyqt_loading_button import LoadingButton, AnimationType
 import winaccent
+import requests
+import webbrowser
 
 os.environ["QT_LOGGING_RULES"] = "*.ffmpeg.*=false"
 global pressed_key
@@ -1244,7 +1246,7 @@ class SoundboardApplication:
     
     def __init__(self):
         app.setApplicationName("SoundBox by BanditRN")
-        app.setApplicationVersion("0.2.1")
+        app.setApplicationVersion("0.4.0")
         app.setWindowIcon(QIcon(ResourceManager.get_resource_path("window_icon.png")))                        
 
     def run(self) -> int:
@@ -1271,6 +1273,10 @@ def main():
             while movie.state() == QMovie.Running and movie.currentFrameNumber() < movie.frameCount() - 1:
                 app.processEvents()
             MainApp = SoundboardApplication()
+            response = requests.get("https://api.github.com/repos/BanditRN/Soundbox/releases")
+            latest_version = json.loads(response.text)[0]["tag_name"]
+            if latest_version != app.applicationVersion():
+                QMessageBox.information(None, "Update Available", f"A new version of SoundBox is available: {latest_version}. You are using version {app.applicationVersion()}.")
             sys.exit(MainApp.run())
         else:
             QMessageBox.warning(None, "Warning", "Another instance of SoundBox is already running.")
