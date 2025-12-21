@@ -16,7 +16,7 @@ from multiprocessing import Pool
 from pyqt_loading_button import LoadingButton, AnimationType
 import winaccent
 import requests
-import webbrowser
+
 
 os.environ["QT_LOGGING_RULES"] = "*.ffmpeg.*=false"
 global pressed_key
