@@ -1,0 +1,158 @@
+/* ScrollBar Styles */
+QScrollBar:vertical {
+    background-color: transparent;
+    border: transparent;
+    background: transparent;
+    width: 10px;  
+}
+
+QScrollBar::handle:vertical {
+    background: #a0a0a0;
+    min-height: 20px;
+    border-radius: 5px;
+}
+
+QScrollBar::add-line {
+    border: none;
+    background: none;
+    height: 0px;
+    subcontrol-position: bottom;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::sub-line {
+    border: none;
+    background: none;
+    height: 0px;
+    subcontrol-position: top;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::add-page,
+QScrollBar::sub-page {
+    background: none;
+}
+
+/* Main Window Widget */
+QWidget#centralwidget {
+    background: qlineargradient(x1:0 y1:0, x2:1 y2:1, stop:0 #051c2a stop:1 #44315f);
+    color: transparent;
+    border-radius: 5px;
+}
+
+/* General Widgets */
+QLabel, QPushButton {
+    background: transparent;
+}
+
+/* Button Styles */
+QPushButton {
+    background: transparent;
+}
+
+QPushButton#reloadBtn:hover:!pressed {
+    background-color: #363637;
+}
+
+QPushButton:hover:pressed {
+    background-color: #141417;
+}
+
+/* ComboBox Styles */
+QComboBox#audio_devices, QComboBox#audio_input_devices {
+    color: white;
+    background: radial-gradient(circle,rgba(5, 4, 4, 1) 59%, rgba(89, 89, 89, 0.66) 83%);
+    height: 18px;
+}
+
+QComboBox#audio_devices QListView, QComboBox#audio_input_devices QListView {
+    border: 0px;
+    background: radial-gradient(circle,rgba(5, 4, 4, 1) 59%, rgba(89, 89, 89, 0.66) 83%);
+    color: white;
+}
+
+QComboBox#audio_devices::drop-down:button, QComboBox#audio_input_devices::drop-down:button {
+    background: transparent;
+    border: 0px;
+}
+
+QComboBox#audio_devices::down-arrow, QComboBox#audio_input_devices::down-arrow {
+    width: 12px;
+    height: 12px;
+    margin-right: 15px;
+}
+
+/* Label Styles */
+QLabel {
+    background: transparent;
+    color: white;
+}
+
+/* ListView Styles */
+QListView {
+    background: transparent;
+    padding-right: 2px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    color: white;
+}
+
+QListView::item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    border: None;
+    height: 40px;
+}
+
+QListView::item:selected {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+}
+
+QListView:focus {
+    outline: None;
+}
+
+QTextEdit {
+    color: white;
+}
+
+/* Window Control Buttons */
+QPushButton#closeBtn {
+    background-color: transparent;
+    color: black; 
+    border: none; 
+    font-size: 14px;
+    font-weight: bold;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    border-top-right-radius: 10px;
+}
+
+QPushButton#closeBtn:hover:!pressed {
+    background-color: red;
+}
+
+QPushButton#minimizeBtn {
+    text-align: top;
+    background-color: transparent;
+    border-radius: 0px;
+    color: black;
+    border: none;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+QPushButton#minimizeBtn:hover:!pressed {
+    background-color: grey;
+}
+
+/* Special Button Styles */
+.loading-button {
+    color: white;
+    background: #122138;
+    border: 2px solid transparent;
+    border-radius: 5px;
+    font-size: 16px;
+}
