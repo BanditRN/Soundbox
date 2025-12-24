@@ -4,3 +4,5 @@ cleanup_comments.py
 __pycache__/ 
 *.log
 *.tmp
+.txt
+!README.txt
