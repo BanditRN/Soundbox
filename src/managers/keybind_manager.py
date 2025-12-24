@@ -1,6 +1,7 @@
 import json
 import keyboard
-from PySide6.QtCore import Qt, QMetaObject, QtCore
+from PySide6 import QtCore
+from PySide6.QtCore import Qt, QMetaObject
 from src.core.config import Config
 
 class KeybindManager:

@@ -4,7 +4,8 @@ import json
 import requests
 from PySide6 import QtCore
 from PySide6.QtWidgets import QApplication, QMessageBox
-from PySide6.QtGui import QIcon, QMovie, QSize
+from PySide6.QtGui import QIcon, QMovie
+from PySide6.QtCore import QSize
 
 from src.core.config import Config
 from src.utils.resource_manager import ResourceManager

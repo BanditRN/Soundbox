@@ -34,10 +34,9 @@ QScrollBar::sub-page {
 }
 
 /* Main Window Widget */
-QWidget#centralwidget {
+QFrame#mainFrame {
     background: qlineargradient(x1:0 y1:0, x2:1 y2:1, stop:0 #051c2a stop:1 #44315f);
-    color: transparent;
-    border-radius: 5px;
+    border-radius: 10px;
 }
 
 /* General Widgets */

@@ -1,4 +1,5 @@
-from PySide6.QtWidgets import QStyledItemDelegate, QApplication, QFrame, QStyle, QtWidgets, QSplashScreen
+from PySide6 import QtWidgets, QtCore
+from PySide6.QtWidgets import QStyledItemDelegate, QApplication, QFrame, QStyle, QSplashScreen
 from PySide6.QtCore import Signal, QModelIndex, QRect, Qt, Slot
 from PySide6.QtGui import QPixmap, QPainter
 
@@ -39,6 +40,7 @@ class ResizableFrame(QFrame):
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setAttribute(Qt.WA_StyledBackground, True)
         self.parent_window = parent
         self.setMouseTracking(True)
     
