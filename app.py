@@ -1,7 +1,6 @@
 import sys
 import os
 import json
-import keyboard
 from typing import List, Dict, Any
 import re
 from PySide6 import QtCore, QtWidgets, QtGui
@@ -17,9 +16,11 @@ from pyqt_loading_button import LoadingButton, AnimationType
 import winaccent
 import requests
 
+from pynput import keyboard
 
 os.environ["QT_LOGGING_RULES"] = "*.ffmpeg.*=false"
 global pressed_key
+
 class Config:
     if not os.path.exists(os.getenv('APPDATA')+'\\Soundbox') :
         os.mkdir(os.getenv('APPDATA')+'\\Soundbox')
@@ -38,6 +39,45 @@ class Config:
     WINDOW_SIZE = (800, 600)
     SUPPORTED_FORMATS = ('.mp3', '.wav', '.ogg', '.flac')
 
+class KeybindManager:
+
+    def __init__(self, parent):
+        self.parent = parent
+        self.keybinds = {}
+        self.keybinds_json = {}
+
+    # def _setup_fixed_stop(self) -> None:
+    #     keyboard.HotKey(
+    #     keyboard.HotKey.parse('backspace'),
+    #     SoundboardWindow.stop_sound())
+        
+    def load_keybinds(self) -> None:
+        try:
+            #self._setup_fixed_stop()
+            with open(Config.KEYBINDS_FILE, 'r') as f:
+                self.keybinds_json = json.load(f)
+            
+            for key, binding in self.keybinds_json.items():
+                if binding:
+                    self.keybinds[key] = binding
+                    with keyboard.GlobalHotKeys({
+                        binding: SoundboardWindow._hotkey_play_sound(self.parent, key)
+                    }) as h:
+                        h.join()
+        except FileNotFoundError:
+            self._create_default_keybinds()
+    
+    def _create_default_keybinds(self) -> None:
+        sound_list = self.parent.audio_manager.get_sound_list()
+        for item in sound_list:
+            self.keybinds_json[item] = ""
+        
+        with open(Config.KEYBINDS_FILE, 'w') as f:
+            json.dump(self.keybinds_json, f, indent=4)
+    
+    def save_keybinds(self) -> None:
+        with open(Config.KEYBINDS_FILE, 'w') as f:
+            json.dump(self.keybinds, f, indent=4)
 
 class StyleSheets:
     
@@ -114,7 +154,9 @@ class SettingsManager:
         
     
     def _load_settings(self) -> Dict[str, Any]:
+        
         try:
+            
             with open(Config.SETTINGS_FILE, "r") as f:
                 return json.load(f)
         except FileNotFoundError:
@@ -122,6 +164,7 @@ class SettingsManager:
             return Config.DEFAULT_SETTINGS.copy()
     
     def _save_settings(self, settings: Dict[str, Any]) -> None:
+        
         with open(Config.SETTINGS_FILE, "w") as f:
             json.dump(settings, f, indent=4)
     
@@ -147,50 +190,6 @@ class SettingsManager:
                 os.environ[env_key] = str(value)
 
 
-class KeybindManager:
-    
-    def __init__(self, parent):
-        self.parent = parent
-        self.keybinds = {}
-        self.keybinds_json = {}
-
-    def _setup_fixed_stop(self) -> None:
-        keyboard.add_hotkey('backspace', lambda: QMetaObject.invokeMethod(
-            self.parent, "_hotkey_stop", Qt.QueuedConnection))
-        
-    def load_keybinds(self) -> None:
-        try:
-            keyboard.unhook_all()
-            self._setup_fixed_stop()
-            with open(Config.KEYBINDS_FILE, 'r') as f:
-                self.keybinds_json = json.load(f)
-            
-            for key, binding in self.keybinds_json.items():
-                if binding:
-                    self.keybinds[key] = binding
-                    keyboard.add_hotkey(
-                        binding, 
-                        lambda sound=key: QMetaObject.invokeMethod(
-                            self.parent, "_hotkey_play_sound", 
-                            Qt.QueuedConnection, 
-                            QtCore.Q_ARG(str, str(sound))
-                        )
-                    )
-        except FileNotFoundError:
-            self._create_default_keybinds()
-    
-    def _create_default_keybinds(self) -> None:
-        self._setup_fixed_stop()
-        sound_list = self.parent.audio_manager.get_sound_list()
-        for item in sound_list:
-            self.keybinds_json[item] = ""
-        
-        with open(Config.KEYBINDS_FILE, 'w') as f:
-            json.dump(self.keybinds_json, f, indent=4)
-    
-    def save_keybinds(self) -> None:
-        with open(Config.KEYBINDS_FILE, 'w') as f:
-            json.dump(self.keybinds, f, indent=4)
 
 
 class AudioManager:
@@ -242,7 +241,9 @@ class AudioManager:
         
         try:
             sound_files_set = set()
+            
             for file in os.listdir(directory):
+
                 if file.endswith(Config.SUPPORTED_FORMATS):
                     full_path = os.path.join(directory, file)
                     if os.path.exists(full_path):
@@ -262,7 +263,7 @@ class AudioManager:
             return ["NO MUSIC WAS LOADED"]
     
     def play_sound_file(self, sound_name: str) -> bool:
-        
+
         if not self.audio_output or not self.audio_soundboard:
             return False
         
@@ -355,6 +356,7 @@ class SoundboardWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
+
         self.set_keybind = ""
         self.old_pos = None
         self.resizing = False
@@ -455,6 +457,7 @@ class SoundboardWindow(QMainWindow):
         super().showNormal()
 
     def _setup_window(self) -> None:
+        
         self.setWindowTitle("SoundBox")
         self.setWindowIcon(QIcon(ResourceManager.get_resource_path("window_icon.png")))
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -823,8 +826,7 @@ class SoundboardWindow(QMainWindow):
             self, "_select_folder", Qt.QueuedConnection))
         self.search_box.textChanged.connect(self._filter_sound_list)
         self.dialog.accepted.connect(self._set_hotkey)
-        self.dialog.finished.connect(self.unhook_keybind)
-        self.dialog.finished.connect(lambda: self.setEnabled(True))
+        self.dialog.finished.connect(lambda: [self.setEnabled(True), listener.stop()])
         self.reload_button.clicked.connect(self.reload_list)
         self.audio_manager.player.tracksChanged.connect(self._reset_slider)
         self.audio_manager.player.positionChanged.connect(self._set_seek_slider_value)                    
@@ -927,42 +929,40 @@ class SoundboardWindow(QMainWindow):
     
     @Slot(QModelIndex)
     def _on_keybind_button_clicked(self, index: QModelIndex) -> None:
-        global pressed_key
-        QTimer.singleShot(0, self.make_readonly)
-        self.dialog.show()
-        self.setEnabled(False)
-        try:
-            existing_key = self.keybind_manager.keybinds[self.model.data(self.list_view.currentIndex(), Qt.DisplayRole)]
-        except KeyError:
-            existing_key= ""
-        self.dialog.setTextValue(existing_key)
-        pressed_key = []
-        self.fkeys = [f"f{i}" for i in range(1, 13)]
-        keyboard.hook(self._keyboard_input_hook)
+            
+            global pressed_key
+            QTimer.singleShot(0, self.make_readonly)
+            self.dialog.show()
+            self.setEnabled(False)
+            try:
+                existing_key = self.keybind_manager.keybinds[self.model.data(self.list_view.currentIndex(), Qt.DisplayRole)]
+            except KeyError:
+                existing_key= ""
+            self.dialog.setTextValue(existing_key)
+            pressed_key = []
+            QMetaObject.invokeMethod(
+                            self,
+                            "keyboard_listener", 
+                            Qt.QueuedConnection)
+            # on_press=self.on_press) as listener:
+            #     listener.join()
+    def on_press(self,key) -> None:
+            try:
+                self.dialog.setTextValue(str(key.char))
+            except AttributeError:
+                self.dialog.setTextValue(str(key.name))
 
-    def _keyboard_input_hook(self, e) -> None:
-        global pressed_key
-        if e.event_type == "down":
-            match e.name:
-                case 'backspace':
-                    self.line_edit.backspace()
-                    if pressed_key:
-                        pressed_key.pop()
-                    return
-                case 'space':
-                    return
-                case 'enter':
-                    return
 
-            pressed_key.append(e.name)
-            pressed_key = list(set(pressed_key))
-            self.dialog.setTextValue('+'.join(str(key) for key in pressed_key))    
-            self.set_keybind = self.dialog.textValue()       
-        else:
-            return
+
+
+
     @Slot()
-    def unhook_keybind(self):
-        keyboard.unhook(self._keyboard_input_hook)
+    def keyboard_listener(self) -> None:
+        global listener
+        listener = keyboard.Listener(
+            on_press=self.on_press
+            )
+        listener.start()
 
     @Slot(int)
     def _set_hotkey(self) -> None:
@@ -972,7 +972,8 @@ class SoundboardWindow(QMainWindow):
         action_name = self.model.data(index, Qt.DisplayRole)
         try:
             if self.dialog.textValue() == "":
-                keyboard.remove_hotkey(self.keybind_manager.keybinds[action_name])
+                pass
+                #keyboard.remove_hotkey(self.keybind_manager.keybinds[action_name])
         except:
             self.reload_list()
             return
@@ -1125,7 +1126,6 @@ class SoundboardWindow(QMainWindow):
         return None
     
     def _set_resize_cursor(self, handle):
-        """Set the appropriate cursor for the resize handle"""
         cursor_map = {
             'top-left': Qt.SizeFDiagCursor,
             'top-right': Qt.SizeBDiagCursor,
@@ -1256,7 +1256,7 @@ class SoundboardApplication:
         return app.exec()
 
 
-def main():
+def keybinds():
     try:
         lockfile = QtCore.QLockFile(QtCore.QDir.tempPath() + '/Soundbox.lock')
         global app
@@ -1277,11 +1277,13 @@ def main():
             latest_version = json.loads(response.text)[0]["tag_name"]
             if latest_version != app.applicationVersion():
                 QMessageBox.information(None, "Update Available", f"A new version of SoundBox is available: {latest_version}. You are using version {app.applicationVersion()}.")
+            
             sys.exit(MainApp.run())
         else:
             QMessageBox.warning(None, "Warning", "Another instance of SoundBox is already running.")
             sys.exit(0)
     except Exception as e:
+        
         with open(Config.LOG_FILE,"w") as f:
             f.write(f"Application error: {str(e)}")
         print(e)
@@ -1289,4 +1291,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    keybinds()
