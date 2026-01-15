@@ -1427,7 +1427,7 @@ class SoundboardApplication:
     
     def __init__(self):
         app.setApplicationName("SoundBox by BanditRN")
-        app.setApplicationVersion("0.5.0")
+        app.setApplicationVersion("0.5.2")
         app.setWindowIcon(QIcon(ResourceManager.get_resource_path("window_icon.png")))                        
 
     def run(self) -> int:
