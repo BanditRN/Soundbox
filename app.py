@@ -4,10 +4,10 @@ import json
 from typing import List, Dict, Any
 import re
 from PySide6 import QtCore, QtWidgets, QtGui
-from PySide6.QtCore import Qt, QSize, QRect, QUrl, Signal, Slot, QModelIndex, QMetaObject, QStringListModel,QTimer, SLOT,SIGNAL,QEventLoop
+from PySide6.QtCore import Qt, QSize, QRect, QUrl, Signal, Slot, QModelIndex, QMetaObject, QStringListModel, QThread
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                                QListView, QPushButton, QSlider, QLabel, QComboBox, QFrame,
-                               QStyledItemDelegate, QInputDialog, QMessageBox, QFileDialog,
+                               QStyledItemDelegate, QMessageBox, QFileDialog,
                                QAbstractItemView, QStyle , QTextEdit , QSplashScreen)
 from PySide6.QtGui import QIcon, QFont, QPixmap, QMovie,QPainter
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput, QMediaDevices
@@ -15,11 +15,260 @@ from multiprocessing import Pool
 from pyqt_loading_button import LoadingButton, AnimationType
 import winaccent
 import requests
-
+from typing import Callable, Dict, Optional
 from pynput import keyboard
 
 os.environ["QT_LOGGING_RULES"] = "*.ffmpeg.*=false"
-global pressed_key
+
+class HotkeyConfig:
+    
+    def __init__(self, config_file: str):
+        self.config_file = config_file
+        self.hotkeys: Dict[str, str] = {}
+        self.load_config()
+    
+    def load_config(self):
+        if os.path.exists(self.config_file):
+            try:
+                with open(self.config_file, 'r') as f:
+                    self.hotkeys = json.load(f)
+            except json.JSONDecodeError:
+                self.hotkeys = {}
+        else:
+            self.hotkeys = {}
+    
+    def save_config(self):
+        with open(self.config_file, 'w') as f:
+            json.dump(self.hotkeys, indent=4, fp=f)
+    
+    def add_hotkey(self, action_name: str, key_combination: str):
+        self.hotkeys[key_combination] = action_name
+        self.save_config()
+    
+    def remove_hotkey(self, key_combination: str):
+        if key_combination in self.hotkeys:
+            del self.hotkeys[key_combination]
+            self.save_config()
+    
+    def get_action(self, key_combination: str) -> Optional[str]:
+        return self.hotkeys.get(key_combination)
+    
+    def get_hotkey_for_action(self, action_name: str) -> Optional[str]:
+        for combo, action in self.hotkeys.items():
+            if action == action_name:
+                return combo
+        return None
+
+
+class HotkeyListenerThread(QThread):
+
+    action_triggered = Signal(str)  
+    key_captured = Signal(str)      
+    
+    def __init__(self, config: HotkeyConfig):
+        super().__init__()
+        self.config = config
+        self.current_keys = set()
+        self.listener: Optional[keyboard.Listener] = None
+        self.is_running = True
+        self.capture_mode = False
+        self._last_executed = None
+    
+    def start_capture_mode(self):
+        self.capture_mode = True
+        self.current_keys.clear()
+    
+    def stop_capture_mode(self):
+        self.capture_mode = False
+        self.current_keys.clear()
+    
+    def _normalize_key(self, key) -> str:
+        try:
+            return key.char.lower() if key.char else ''
+        except AttributeError:
+            return str(key).replace('Key.', '').lower()
+    
+    def _on_press(self, key):
+        key_name = self._normalize_key(key)
+        if not key_name:
+            return
+        if self.capture_mode:
+            if key_name not in self.current_keys and len(self.current_keys) < 2:
+                self.current_keys.add(key_name)
+                combo = '+'.join(sorted(self.current_keys))
+                self.key_captured.emit(combo)
+            return
+        
+        if len(self.current_keys) < 2:
+            self.current_keys.add(key_name)
+            combo = '+'.join(sorted(self.current_keys))
+            action_name = self.config.get_action(combo)
+            
+            if action_name:
+                if not self._last_executed or self._last_executed != combo:
+                    self.action_triggered.emit(action_name)
+                    self._last_executed = combo
+    
+    def _on_release(self, key):
+        if self.capture_mode:
+            return
+        
+        key_name = self._normalize_key(key)
+        if key_name in self.current_keys:
+            self.current_keys.remove(key_name)
+        
+        if len(self.current_keys) == 0:
+            self._last_executed = None
+    
+    def run(self):
+        self.listener = keyboard.Listener(
+            on_press=self._on_press,
+            on_release=self._on_release
+        )
+        self.listener.start()
+        self.listener.join()
+    
+    def stop(self):
+        self.is_running = False
+        if self.listener:
+            self.listener.stop()
+
+
+class KeybindDialog(QtWidgets.QDialog):
+    
+    def __init__(self, action_name: str, existing_key: str = "", parent=None):
+        super().__init__(parent)
+        self.action_name = action_name
+        self.captured_key = existing_key
+        self.accepted_key = None
+        self.setWindowTitle("Set Keybind")
+        self.setFixedSize(350, 150)
+        self.setModal(True)
+        
+        # Create layout
+        layout = QVBoxLayout(self)
+        
+        # Info label
+        info_label = QLabel(f"Set keybind for: {action_name}")
+        info_label.setFont(QFont("Arial", 11, QFont.Bold))
+        info_label.setStyleSheet("color: white; background: transparent;")
+        layout.addWidget(info_label)
+        
+        # Instruction label
+        instruction = QLabel("Press your key combination (max 2 keys)")
+        instruction.setStyleSheet("color: #aaaaaa; background: transparent;")
+        layout.addWidget(instruction)
+        
+        # Text box to show captured keys
+        self.key_display = QTextEdit()
+        self.key_display.setReadOnly(True)
+        self.key_display.setFixedHeight(40)
+        self.key_display.setPlaceholderText("Press keys...")
+        self.key_display.setText(existing_key)
+        self.key_display.setStyleSheet("""
+            QTextEdit {
+                background: #2a2a2a;
+                color: white;
+                border: 2px solid #444;
+                border-radius: 0px;
+                padding: 5px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+        """)
+        layout.addWidget(self.key_display)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        
+        self.accept_btn = QPushButton("Accept")
+        self.accept_btn.setStyleSheet("""
+            QPushButton {
+                background: #28a745;
+                color: white;
+                border: none;
+                padding: 8px 20px;
+                border-radius: 5px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background: #218838;
+            }
+            QPushButton:pressed {
+                background: #1e7e34;
+            }
+        """)
+        self.accept_btn.clicked.connect(self._accept_keybind)
+        
+        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn.setStyleSheet("""
+            QPushButton {
+                background: #dc3545;
+                color: white;
+                border: none;
+                padding: 8px 20px;
+                border-radius: 5px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background: #c82333;
+            }
+            QPushButton:pressed {
+                background: #bd2130;
+            }
+        """)
+        self.cancel_btn.clicked.connect(self.reject)
+
+        self.clear_btn = QPushButton("Clear")
+        self.clear_btn.setStyleSheet("""
+            QPushButton {
+                background: grey;
+                color: white;
+                border: none;
+                padding: 8px 20px;
+                border-radius: 5px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background: #c82333;
+            }
+            QPushButton:pressed {
+                background: #bd2130;
+            }
+        """)
+        self.clear_btn.clicked.connect(self.clear_keybind)
+
+        button_layout.addWidget(self.accept_btn)
+        button_layout.addWidget(self.cancel_btn)
+        button_layout.addWidget(self.clear_btn)
+
+        layout.addLayout(button_layout)
+        
+        self.setStyleSheet("""
+            QDialog {
+                background: qlineargradient(x1:0 y1:0, x2:1 y2:1, 
+                    stop:0 #051c2a stop:1 #44315f);
+                border: 2px solid """ + winaccent.accent_dark_1 + """;
+                border-radius: 0px;
+            }
+            QLabel {
+                background: transparent;
+            }
+        """)
+    def clear_keybind(self):
+        self.accepted_key = None
+        self.accept()
+
+    def update_key_display(self, key_combo: str):
+        self.captured_key = key_combo
+        self.key_display.setText(key_combo)
+    
+    def _accept_keybind(self):
+        self.accepted_key = self.captured_key
+        self.accept()
+    
+    def get_keybind(self) -> Optional[str]:
+        return self.accepted_key
 
 class Config:
     if not os.path.exists(os.getenv('APPDATA')+'\\Soundbox') :
@@ -39,45 +288,7 @@ class Config:
     WINDOW_SIZE = (800, 600)
     SUPPORTED_FORMATS = ('.mp3', '.wav', '.ogg', '.flac')
 
-class KeybindManager:
 
-    def __init__(self, parent):
-        self.parent = parent
-        self.keybinds = {}
-        self.keybinds_json = {}
-
-    # def _setup_fixed_stop(self) -> None:
-    #     keyboard.HotKey(
-    #     keyboard.HotKey.parse('backspace'),
-    #     SoundboardWindow.stop_sound())
-        
-    def load_keybinds(self) -> None:
-        try:
-            #self._setup_fixed_stop()
-            with open(Config.KEYBINDS_FILE, 'r') as f:
-                self.keybinds_json = json.load(f)
-            
-            for key, binding in self.keybinds_json.items():
-                if binding:
-                    self.keybinds[key] = binding
-                    with keyboard.GlobalHotKeys({
-                        binding: SoundboardWindow._hotkey_play_sound(self.parent, key)
-                    }) as h:
-                        h.join()
-        except FileNotFoundError:
-            self._create_default_keybinds()
-    
-    def _create_default_keybinds(self) -> None:
-        sound_list = self.parent.audio_manager.get_sound_list()
-        for item in sound_list:
-            self.keybinds_json[item] = ""
-        
-        with open(Config.KEYBINDS_FILE, 'w') as f:
-            json.dump(self.keybinds_json, f, indent=4)
-    
-    def save_keybinds(self) -> None:
-        with open(Config.KEYBINDS_FILE, 'w') as f:
-            json.dump(self.keybinds, f, indent=4)
 
 class StyleSheets:
     
@@ -365,8 +576,11 @@ class SoundboardWindow(QMainWindow):
         self.maximum_size = QSize(1200, 800)         
         self.settings_manager = SettingsManager()
         self.audio_manager = AudioManager(self.settings_manager)
-        self.keybind_manager = KeybindManager(self)
+        self.hotkey_config = HotkeyConfig(Config.KEYBINDS_FILE)
+        self.hotkey_listener = None
+        self.current_capture_action = None
         
+
         self._setup_window()
         self._create_widgets()
         self._setup_layouts()
@@ -448,8 +662,23 @@ class SoundboardWindow(QMainWindow):
         
 
         self.minimize_animation = None
-        self.keybind_manager.load_keybinds()
+        self._start_hotkey_listener()
         
+    def _start_hotkey_listener(self):
+        self.hotkey_listener = HotkeyListenerThread(self.hotkey_config)
+        
+        self.hotkey_listener.action_triggered.connect(self._execute_hotkey_action)
+        self.hotkey_listener.key_captured.connect(self._update_keybind_dialog)
+        
+        self.hotkey_listener.start()
+    @Slot(str)
+    def _execute_hotkey_action(self, action_name: str):
+        self._play_sound_by_name(action_name)
+
+    @Slot(str)
+    def _update_keybind_dialog(self, combo: str):
+        if self.keybind_dialog and self.keybind_dialog.isVisible():
+            self.keybind_dialog.update_key_display(combo)
 
     def showNormal(self):
         if hasattr(self, '_original_geometry'):
@@ -497,9 +726,6 @@ class SoundboardWindow(QMainWindow):
         
                        
         self._create_other_widgets()
-        
-                        
-        self._create_keybind_dialog()
 
 
         self._create_seek_slider()
@@ -652,21 +878,7 @@ class SoundboardWindow(QMainWindow):
         self.select_folder_btn.setAnimationWidth(15)
         self.select_folder_btn.setAnimationStrokeWidth(3)
         self.select_folder_btn.setStyleSheet(StyleSheets.get_button_style())
-    
-    def _create_keybind_dialog(self) -> None:
-        self.dialog = QInputDialog()
-        self.dialog.setFixedSize(QSize(150, 100))
-        self.dialog.setLabelText('Set your keybind')
-        self.dialog.setWindowTitle('Set Keybind')
-        self.dialog.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.dialog.setStyleSheet("QLabel: {background: transparent;}")
-        self.dialog.setModal(True)
 
-    def make_readonly(self) -> None:
-        if self.dialog.isVisible():
-            self.line_edit = self.dialog.findChild(QtWidgets.QLineEdit)
-            self.line_edit
-            self.line_edit.setReadOnly(True)
 
     def _create_icon_button(self, icon_file: str, size: tuple, icon_size: tuple = None) -> QPushButton:
         button = QPushButton()
@@ -825,8 +1037,6 @@ class SoundboardWindow(QMainWindow):
         self.select_folder_btn.setAction(lambda: QMetaObject.invokeMethod(
             self, "_select_folder", Qt.QueuedConnection))
         self.search_box.textChanged.connect(self._filter_sound_list)
-        self.dialog.accepted.connect(self._set_hotkey)
-        self.dialog.finished.connect(lambda: [self.setEnabled(True), listener.stop()])
         self.reload_button.clicked.connect(self.reload_list)
         self.audio_manager.player.tracksChanged.connect(self._reset_slider)
         self.audio_manager.player.positionChanged.connect(self._set_seek_slider_value)                    
@@ -868,19 +1078,6 @@ class SoundboardWindow(QMainWindow):
         sound_list = self.audio_manager.get_sound_list()
         self.model.setStringList(sound_list)
     
-                              
-    @Slot()
-    def _hotkey_play(self):
-        self.play_sound()
-    
-    @Slot()
-    def _hotkey_stop(self):
-        self.stop_sound()
-    
-    @Slot(str)
-    def _hotkey_play_sound(self, sound: str):
-        self._play_sound_by_name(sound)
-    
     def _update_volume(self) -> None:
         output_volume = self.volume_slider_output.value()
         input_volume = self.volume_slider_input.value()
@@ -908,6 +1105,7 @@ class SoundboardWindow(QMainWindow):
         device_name = self.audio_input_devices.currentText()
         self.audio_manager.setup_audio_input(device_name)
         self.settings_manager.set("DefaultInput", device_name)
+
     @Slot()
     def _select_folder(self) -> None:
         self.select_folder_btn.isRunning = True
@@ -918,69 +1116,58 @@ class SoundboardWindow(QMainWindow):
         if selected_directory:
             os.environ["SOUNDBOARD_DIR"] = selected_directory
             self.settings_manager.set("Directory", selected_directory)
-            self.keybind_manager.keybinds.clear() 
-            self.keybind_manager.keybinds_json.clear()
-            self.keybind_manager.save_keybinds()
             self._load_sounds()
-            self.keybind_manager.load_keybinds()
         self.select_folder_btn.isRunning = False
         self.select_folder_btn.update()
         
     
     @Slot(QModelIndex)
     def _on_keybind_button_clicked(self, index: QModelIndex) -> None:
-            
-            global pressed_key
-            QTimer.singleShot(0, self.make_readonly)
-            self.dialog.show()
-            self.setEnabled(False)
-            try:
-                existing_key = self.keybind_manager.keybinds[self.model.data(self.list_view.currentIndex(), Qt.DisplayRole)]
-            except KeyError:
-                existing_key= ""
-            self.dialog.setTextValue(existing_key)
-            pressed_key = []
-            QMetaObject.invokeMethod(
-                            self,
-                            "keyboard_listener", 
-                            Qt.QueuedConnection)
-            # on_press=self.on_press) as listener:
-            #     listener.join()
-    def on_press(self,key) -> None:
-            try:
-                self.dialog.setTextValue(str(key.char))
-            except AttributeError:
-                self.dialog.setTextValue(str(key.name))
-
-
-
-
-
-    @Slot()
-    def keyboard_listener(self) -> None:
-        global listener
-        listener = keyboard.Listener(
-            on_press=self.on_press
-            )
-        listener.start()
-
-    @Slot(int)
-    def _set_hotkey(self) -> None:
-        index = self.list_view.currentIndex()
         if not index.isValid():
-            return 
-        action_name = self.model.data(index, Qt.DisplayRole)
-        try:
-            if self.dialog.textValue() == "":
-                pass
-                #keyboard.remove_hotkey(self.keybind_manager.keybinds[action_name])
-        except:
-            self.reload_list()
             return
-
-        self.keybind_manager.keybinds[action_name] = self.dialog.textValue() 
-        self.reload_list()
         
+        action_name = self.model.data(index, Qt.DisplayRole)
+        self.current_capture_action = action_name
+        
+        existing_key = self.hotkey_config.get_hotkey_for_action(action_name)
+        self.keybind_dialog = KeybindDialog(action_name, existing_key or "", self)
+        self.hotkey_listener.start_capture_mode()
+        result = self.keybind_dialog.exec()
+        self.hotkey_listener.stop_capture_mode()
+        if result == QtWidgets.QDialog.Accepted:
+            new_combo = self.keybind_dialog.get_keybind()
+            if new_combo is None:
+                old_combo = self.hotkey_config.get_hotkey_for_action(action_name)
+                self.hotkey_config.remove_hotkey(old_combo)
+            if new_combo:
+                old_combo = self.hotkey_config.get_hotkey_for_action(action_name)
+                if old_combo:
+                    self.hotkey_config.remove_hotkey(old_combo)
+                self.hotkey_config.add_hotkey(action_name, new_combo)
+
+        self.keybind_dialog = None
+        self.current_capture_action = None
+            
+    @Slot(str)
+    def _on_key_captured(self, combo: str):
+        if not combo:
+            QMessageBox.information(self, "Cancelled", "Keybind capture cancelled")
+            self.current_capture_action = None
+            return
+        
+        if not self.current_capture_action:
+            return
+        
+
+        old_combo = self.hotkey_config.get_hotkey_for_action(self.current_capture_action)
+        if old_combo:
+            self.hotkey_config.remove_hotkey(old_combo)
+        
+
+        self.hotkey_config.add_hotkey(self.current_capture_action, combo)
+        self.current_capture_action = None
+
+
     def _filter_sound_list(self) -> None:
         filter_text = self.search_box.toPlainText().lower()
         all_sounds = self.audio_manager.get_sound_list()
@@ -991,11 +1178,16 @@ class SoundboardWindow(QMainWindow):
             filtered_sounds = all_sounds
         
         self.model.setStringList(filtered_sounds)   
+
     def reload_list(self) -> None:
         self._load_sounds()
-        self.keybind_manager.save_keybinds()
-        self.keybind_manager.load_keybinds()
-    
+
+    def closeEvent(self, event):
+        if self.hotkey_listener:
+            self.hotkey_listener.stop()
+            self.hotkey_listener.wait()
+        event.accept()
+
     def _on_playback_state_changed(self, state) -> None:
         if state == QMediaPlayer.PlaybackState.StoppedState:
             self.now_playing.setText("Now Playing: None")
@@ -1191,6 +1383,11 @@ class SoundboardWindow(QMainWindow):
     def keyPressEvent(self, event) -> None:
         if event.key() == Qt.Key_Escape:
             self.close()
+    
+    @Slot(str,str)
+    def global_listener(self,key,binding) -> None:
+        pass
+     
 
 # class TrayIcon(QtWidgets.QSystemTrayIcon):
 #     def __init__(self, icon, parent=None):
@@ -1254,9 +1451,8 @@ class SoundboardApplication:
         self.window.show()
         splash.finish(self.window)
         return app.exec()
-
-
-def keybinds():
+    
+if __name__ == "__main__":
     try:
         lockfile = QtCore.QLockFile(QtCore.QDir.tempPath() + '/Soundbox.lock')
         global app
@@ -1288,7 +1484,3 @@ def keybinds():
             f.write(f"Application error: {str(e)}")
         print(e)
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    keybinds()
