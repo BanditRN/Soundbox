@@ -19,7 +19,6 @@ from typing import Callable, Dict, Optional
 from pynput import keyboard
 
 os.environ["QT_LOGGING_RULES"] = "*.ffmpeg.*=false"
-
 class HotkeyConfig:
     
     def __init__(self, config_file: str):
@@ -62,7 +61,7 @@ class HotkeyConfig:
 
 class HotkeyListenerThread(QThread):
 
-    action_triggered = Signal(str)  
+    action_triggered = Signal(str) 
     key_captured = Signal(str)      
     
     def __init__(self, config: HotkeyConfig):
@@ -568,7 +567,6 @@ class SoundboardWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.set_keybind = ""
         self.old_pos = None
         self.resizing = False
         self.resize_handle = None
@@ -579,7 +577,6 @@ class SoundboardWindow(QMainWindow):
         self.hotkey_config = HotkeyConfig(Config.KEYBINDS_FILE)
         self.hotkey_listener = None
         self.current_capture_action = None
-        
 
         self._setup_window()
         self._create_widgets()
@@ -673,7 +670,11 @@ class SoundboardWindow(QMainWindow):
         self.hotkey_listener.start()
     @Slot(str)
     def _execute_hotkey_action(self, action_name: str):
+        if action_name == "stop sound":
+            self.stop_sound()
+            return
         self._play_sound_by_name(action_name)
+
 
     @Slot(str)
     def _update_keybind_dialog(self, combo: str):
@@ -752,10 +753,11 @@ class SoundboardWindow(QMainWindow):
 
     def _create_media_buttons(self) -> None:
         self.play_button = self._create_icon_button("play.png", (70, 50), (50, 50))
-        self.stop_button = self._create_icon_button("stop.webp", (70, 50), (50, 50))
         self.reload_button = self._create_icon_button("reload.png", (30, 30), (20, 20))
         self.reload_button.setObjectName("reloadBtn")
-    
+        self.stop_button = self._create_icon_button("stop.webp", (70, 50), (50, 50))
+        self.stopkeybind_btn = self._create_icon_button("stop_keybind.png",(30, 30), (20, 20))
+
     def _create_volume_controls(self) -> None:
                        
         self.volume_slider_value = self._create_label(
@@ -986,9 +988,9 @@ class SoundboardWindow(QMainWindow):
         hlayout = QHBoxLayout()
         
         hlayout.addWidget(self.search_box, alignment=Qt.AlignLeft)
-
         hlayout.addWidget(self.now_playing, alignment=Qt.AlignCenter)
-        
+        hlayout.addSpacing(1000)
+        hlayout.addWidget(self.stopkeybind_btn, alignment=Qt.AlignRight)
         
         hlayout.addWidget(self.reload_button, alignment=Qt.AlignRight)
         
@@ -1032,7 +1034,7 @@ class SoundboardWindow(QMainWindow):
         self.list_view.doubleClicked.connect(self.stop_sound)
         self.list_view.doubleClicked.connect(self.play_sound)
         self.hover_delegate.buttonClicked.connect(self._on_keybind_button_clicked)
-        
+        self.stopkeybind_btn.clicked.connect(self._on_keybind_button_clicked)
                
         self.select_folder_btn.setAction(lambda: QMetaObject.invokeMethod(
             self, "_select_folder", Qt.QueuedConnection))
@@ -1120,15 +1122,21 @@ class SoundboardWindow(QMainWindow):
         self.select_folder_btn.isRunning = False
         self.select_folder_btn.update()
         
-    
+
+
     @Slot(QModelIndex)
     def _on_keybind_button_clicked(self, index: QModelIndex) -> None:
-        if not index.isValid():
-            return
+        sender =  self.sender()
+        if sender == self.stopkeybind_btn:
+            action_name = "stop sound"
+            
+        else:
+            if not index.isValid():
+                return
+            action_name = self.model.data(index, Qt.DisplayRole)
+
         
-        action_name = self.model.data(index, Qt.DisplayRole)
         self.current_capture_action = action_name
-        
         existing_key = self.hotkey_config.get_hotkey_for_action(action_name)
         self.keybind_dialog = KeybindDialog(action_name, existing_key or "", self)
         self.hotkey_listener.start_capture_mode()
@@ -1147,26 +1155,6 @@ class SoundboardWindow(QMainWindow):
 
         self.keybind_dialog = None
         self.current_capture_action = None
-            
-    @Slot(str)
-    def _on_key_captured(self, combo: str):
-        if not combo:
-            QMessageBox.information(self, "Cancelled", "Keybind capture cancelled")
-            self.current_capture_action = None
-            return
-        
-        if not self.current_capture_action:
-            return
-        
-
-        old_combo = self.hotkey_config.get_hotkey_for_action(self.current_capture_action)
-        if old_combo:
-            self.hotkey_config.remove_hotkey(old_combo)
-        
-
-        self.hotkey_config.add_hotkey(self.current_capture_action, combo)
-        self.current_capture_action = None
-
 
     def _filter_sound_list(self) -> None:
         filter_text = self.search_box.toPlainText().lower()
@@ -1383,10 +1371,6 @@ class SoundboardWindow(QMainWindow):
     def keyPressEvent(self, event) -> None:
         if event.key() == Qt.Key_Escape:
             self.close()
-    
-    @Slot(str,str)
-    def global_listener(self,key,binding) -> None:
-        pass
      
 
 # class TrayIcon(QtWidgets.QSystemTrayIcon):
