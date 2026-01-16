@@ -52,4 +52,3 @@ SoundBox generates two configuration files upon its first run:
 
 *   The default Qt for Python music player uses ffmpeg. While `.mp3` is supported, other formats might not work as expected.
 *   The application might not function optimally on 7.1 or 5.1 audio devices.
-*   The default global hotkey for stopping playback at any time for both input and output devices is `Backspace`.
