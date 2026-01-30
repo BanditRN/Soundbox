@@ -17,7 +17,6 @@ import winaccent
 import requests
 from typing import Callable, Dict, Optional
 from pynput import keyboard
-from service import SoundboxService
 import win32serviceutil
 
 os.environ["QT_LOGGING_RULES"] = "*.ffmpeg.*=false"
