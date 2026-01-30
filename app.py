@@ -17,6 +17,8 @@ import winaccent
 import requests
 from typing import Callable, Dict, Optional
 from pynput import keyboard
+from service import SoundboxService
+import win32serviceutil
 
 os.environ["QT_LOGGING_RULES"] = "*.ffmpeg.*=false"
 class HotkeyConfig:
@@ -659,7 +661,9 @@ class SoundboardWindow(QMainWindow):
         
 
         self.minimize_animation = None
+
         self._start_hotkey_listener()
+        self.timer_start()
         
     def _start_hotkey_listener(self):
         self.hotkey_listener = HotkeyListenerThread(self.hotkey_config)
@@ -668,6 +672,18 @@ class SoundboardWindow(QMainWindow):
         self.hotkey_listener.key_captured.connect(self._update_keybind_dialog)
         
         self.hotkey_listener.start()
+    
+    def timer_start(self):
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.listener_checker)
+        self.timer.start(60000)
+    
+    def listener_checker(self):
+        if self.hotkey_listener.is_running:
+            self.timer.start(60000)
+        else:
+            self.hotkey_listener.run()
+            self.timer.start(60000)
     @Slot(str)
     def _execute_hotkey_action(self, action_name: str):
         if action_name == "stop sound":
