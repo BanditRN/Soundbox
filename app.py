@@ -144,22 +144,18 @@ class KeybindDialog(QtWidgets.QDialog):
         self.setWindowTitle("Set Keybind")
         self.setFixedSize(350, 150)
         self.setModal(True)
-        
-        # Create layout
+
         layout = QVBoxLayout(self)
-        
-        # Info label
+
         info_label = QLabel(f"Set keybind for: {action_name}")
         info_label.setFont(QFont("Arial", 11, QFont.Bold))
         info_label.setStyleSheet("color: white; background: transparent;")
         layout.addWidget(info_label)
-        
-        # Instruction label
+
         instruction = QLabel("Press your key combination (max 2 keys)")
         instruction.setStyleSheet("color: #aaaaaa; background: transparent;")
         layout.addWidget(instruction)
-        
-        # Text box to show captured keys
+
         self.key_display = QTextEdit()
         self.key_display.setReadOnly(True)
         self.key_display.setFixedHeight(40)
@@ -178,7 +174,6 @@ class KeybindDialog(QtWidgets.QDialog):
         """)
         layout.addWidget(self.key_display)
         
-        # Buttons
         button_layout = QHBoxLayout()
         
         self.accept_btn = QPushButton("Accept")
@@ -567,7 +562,6 @@ class SoundboardWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
-
         self.old_pos = None
         self.resizing = False
         self.resize_handle = None
@@ -662,7 +656,6 @@ class SoundboardWindow(QMainWindow):
         self.minimize_animation = None
 
         self._start_hotkey_listener()
-        self.timer_start()
         
     def _start_hotkey_listener(self):
         self.hotkey_listener = HotkeyListenerThread(self.hotkey_config)
@@ -672,17 +665,6 @@ class SoundboardWindow(QMainWindow):
         
         self.hotkey_listener.start()
     
-    def timer_start(self):
-        self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.listener_checker)
-        self.timer.start(60000)
-    
-    def listener_checker(self):
-        if self.hotkey_listener.is_running:
-            self.timer.start(60000)
-        else:
-            self.hotkey_listener.run()
-            self.timer.start(60000)
     @Slot(str)
     def _execute_hotkey_action(self, action_name: str):
         if action_name == "stop sound":
@@ -706,8 +688,6 @@ class SoundboardWindow(QMainWindow):
         self.setWindowTitle("SoundBox")
         self.setWindowIcon(QIcon(ResourceManager.get_resource_path("window_icon.png")))
         self.setWindowFlags(Qt.FramelessWindowHint)
-        
-        # Set size constraints
         self.setMinimumSize(self.minimum_size)
         self.setMaximumSize(self.maximum_size)
                                  
@@ -1442,7 +1422,7 @@ class SoundboardApplication:
     
     def __init__(self):
         app.setApplicationName("SoundBox by BanditRN")
-        app.setApplicationVersion("0.5.3")
+        app.setApplicationVersion("0.5.4")
         app.setWindowIcon(QIcon(ResourceManager.get_resource_path("window_icon.png")))                        
 
     def run(self) -> int:
