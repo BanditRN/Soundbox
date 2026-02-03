@@ -1366,22 +1366,6 @@ class SoundboardWindow(QMainWindow):
     def keyPressEvent(self, event) -> None:
         if event.key() == Qt.Key_Escape:
             self.close()
-     
-
-# class TrayIcon(QtWidgets.QSystemTrayIcon):
-#     def __init__(self, icon, parent=None):
-#         super().__init__(icon, parent)
-#         self.setToolTip('SoundBox')
-#         menu = QtWidgets.QMenu(parent)
-        
-#         show_action = menu.addAction("Show")
-#         quit_action = menu.addAction("Quit")
-        
-#         show_action.triggered.connect(parent.showNormal)
-#         quit_action.triggered.connect(QApplication.instance().quit)
-        
-#         self.setContextMenu(menu)
-#         self.activated.connect(self.onTrayIconActivated)
 
 class LoadingScreen(QSplashScreen):
     def __init__(self, movie, parent = None):
