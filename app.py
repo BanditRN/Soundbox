@@ -1432,11 +1432,13 @@ if __name__ == "__main__":
             while movie.state() == QMovie.Running and movie.currentFrameNumber() < movie.frameCount() - 1:
                 app.processEvents()
             MainApp = SoundboardApplication()
-            response = requests.get("https://api.github.com/repos/BanditRN/Soundbox/releases")
-            latest_version = json.loads(response.text)[0]["tag_name"]
-            if latest_version != app.applicationVersion():
-                QMessageBox.information(None, "Update Available", f"A new version of SoundBox is available: {latest_version}. You are using version {app.applicationVersion()}.")
-            
+            try:
+                response = requests.get("https://api.github.com/repos/BanditRN/Soundbox/releases",timeout=5)
+                latest_version = json.loads(response.text)[0]["tag_name"]
+                if latest_version != app.applicationVersion():
+                    QMessageBox.information(None, "Update Available", f"A new version of SoundBox is available: {latest_version}. You are using version {app.applicationVersion()}.")
+            except requests.RequestException:
+                pass
             sys.exit(MainApp.run())
         else:
             QMessageBox.warning(None, "Warning", "Another instance of SoundBox is already running.")
