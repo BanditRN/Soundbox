@@ -589,6 +589,10 @@ class SoundboardWindow(QMainWindow):
                            color: transparent;
                            border-radius: 5px;
                            }
+                           QWidget#centralwidget{
+                           border-top-left-radius: 0px;
+                           border-top-right-radius: 0px;
+                           }
                            QPushButton{
                            background: transparent;
                            }
@@ -602,7 +606,7 @@ class SoundboardWindow(QMainWindow):
                            color: white;
                            background: radial-gradient(circle,rgba(5, 4, 4, 1) 59%, rgba(89, 89, 89, 0.66) 83%);
                            border: 1px solid """+ winaccent.accent_dark_1 +""";
-                           height: 18px;
+                           height: 20px;
                            }
                            QComboBox#audio_devices QListView, QComboBox#audio_input_devices QListView
                            {
@@ -631,6 +635,7 @@ class SoundboardWindow(QMainWindow):
                             padding-top: 2px;
                             padding-bottom: 2px;
                             color: white;
+                            border: 2px solid """ + winaccent.accent_dark_1 + """
                             }
                             QListView::item:hover{
                             background: rgba(255, 255, 255, 0.1);
@@ -649,14 +654,19 @@ class SoundboardWindow(QMainWindow):
                             }
                             QTextEdit{
                             color: white;
+                            background: grey;
+                            border-radius: 5px;
+                            background: """ + winaccent.accent_dark_1 + """;
                             }
                            """)
         
 
         self.minimize_animation = None
 
-        self._start_hotkey_listener()
+        QMetaObject.invokeMethod(
+            self, "_start_hotkey_listener", Qt.QueuedConnection)
         
+    @Slot()  
     def _start_hotkey_listener(self):
         self.hotkey_listener = HotkeyListenerThread(self.hotkey_config)
         
@@ -687,7 +697,7 @@ class SoundboardWindow(QMainWindow):
         
         self.setWindowTitle("SoundBox")
         self.setWindowIcon(QIcon(ResourceManager.get_resource_path("window_icon.png")))
-        self.setWindowFlags(Qt.FramelessWindowHint)
+
         self.setMinimumSize(self.minimum_size)
         self.setMaximumSize(self.maximum_size)
                                  
@@ -710,13 +720,8 @@ class SoundboardWindow(QMainWindow):
         
                          
         self._create_volume_controls()
-        
-                         
-        self._create_window_controls()
-        
                                 
         self._create_audio_device_widgets()
-        
                     
         self._create_sound_list_widget()
         
@@ -752,6 +757,7 @@ class SoundboardWindow(QMainWindow):
         self.reload_button.setObjectName("reloadBtn")
         self.stop_button = self._create_icon_button("stop.webp", (70, 50), (50, 50))
         self.stopkeybind_btn = self._create_icon_button("stop_keybind.png",(30, 30), (20, 20))
+        self.stopkeybind_btn.setToolTip("Set keybind for Stop action")
 
     def _create_volume_controls(self) -> None:
                        
@@ -765,38 +771,7 @@ class SoundboardWindow(QMainWindow):
         self.volume_slider_input = self._create_volume_slider("VolumeInput")
         self.volume_slider_input.setFocusPolicy(Qt.NoFocus)
     
-    def _create_window_controls(self) -> None:
-                                                                           
-        self.close_btn = QPushButton('X')
-                                                                                                                                                   
-        self.close_btn.setStyleSheet("""
-            QPushButton
-            {
-            background-color: transparent;
-            color: black; 
-            border: none; 
-            font-size: 14px;
-            font-weight: bold;
-            border-top-left-radius: 0px;
-            border-bottom-left-radius: 0px;
-            border-bottom-right-radius: 0px;
-            border-top-right-radius: 10px;
-            }
-            QPushButton:hover:!pressed
-            {
-            background-color: red;
-            }""")
-        self.close_btn.setFixedSize(30, 25)
-                                                                                 
-                                                                                 
-        self.minimize_btn = QPushButton('_')
-        self.minimize_btn.setStyleSheet("""
-            QPushButton{text-align: top; background-color: transparent; border-radius: 0px; color: black;  border: none;  font-size: 14px; font-weight: bold;}
-                                        QPushButton:hover:!pressed{background-color: grey;}
-            """)
-        self.minimize_btn.setFixedSize(30, 25)
-        self.minimize_btn.setFocusPolicy(Qt.NoFocus)
-        self.close_btn.setFocusPolicy(Qt.NoFocus)
+
     def _create_audio_device_widgets(self) -> None:
                         
         self.audio_devices = QComboBox()
@@ -826,7 +801,7 @@ class SoundboardWindow(QMainWindow):
         self.device_label = self._create_label("Select your audio Output device", 12)
         
         
-        self.input_device_label = self._create_label("Select your audio Input device", 12)
+        self.input_device_label = self._create_label("Select VB-Audio Input device", 12)
         
     
     def _create_sound_list_widget(self) -> None:
@@ -863,8 +838,8 @@ class SoundboardWindow(QMainWindow):
                    
         self.search_box = QTextEdit()
         self.search_box.setPlaceholderText("Search...")
-        self.search_box.setFixedHeight(30)
-        self.search_box.setFixedWidth(200)
+        self.search_box.setFixedHeight(25)
+        self.search_box.setFixedWidth(150)
         
                               
         self.select_folder_btn = LoadingButton(self)
@@ -917,16 +892,6 @@ class SoundboardWindow(QMainWindow):
             if isinstance(widget, QLabel) or isinstance(widget, QPushButton):
                 widget.setStyleSheet("background: transparent;")
         
-                      
-        
-        self.frame = ResizableFrame(self.central_widget)
-        self.frame.parent_window = self
-        self.frame.setFrameShape(QFrame.Shape.Box)
-        self.frame.setFrameShadow(QFrame.Shadow.Plain)
-        self.frame.setObjectName("mainFrame")
-        self.frame.setStyleSheet(StyleSheets.get_frame_style())
-        self.frame.setLayout(main_layout)
-        
                            
         title_bar = QHBoxLayout()
         
@@ -936,12 +901,7 @@ class SoundboardWindow(QMainWindow):
         title_text.setStyleSheet("color: white; border: None;background: transparent;padding-top: 5px;")
         title_bar.addWidget(title_text, alignment=Qt.AlignLeft)
         title_bar.addStretch()
-        title_bar.addWidget(self.minimize_btn, alignment=Qt.AlignRight | Qt.AlignTop) 
-        title_bar.addWidget(self.close_btn, alignment=Qt.AlignRight | Qt.AlignTop)
         title_bar.setContentsMargins(10,0,0,10)
-
-        main_layout.addLayout(title_bar)
-
                               
         v_layout = QVBoxLayout()
         v_layout.setContentsMargins(10, 10, 10, 10)
@@ -983,6 +943,7 @@ class SoundboardWindow(QMainWindow):
         hlayout = QHBoxLayout()
         
         hlayout.addWidget(self.search_box, alignment=Qt.AlignLeft)
+        hlayout.addSpacing(170)
         hlayout.addWidget(self.now_playing, alignment=Qt.AlignCenter)
         hlayout.addSpacing(1000)
         hlayout.addWidget(self.stopkeybind_btn, alignment=Qt.AlignRight)
@@ -1004,19 +965,12 @@ class SoundboardWindow(QMainWindow):
         v_layout.addLayout(bottom_layout)
         v_layout.addWidget(self.select_folder_btn)
         
-        self.setCentralWidget(self.frame)
+        self.setCentralWidget(self.central_widget)
     
     def _connect_signals(self) -> None:
                         
         self.play_button.clicked.connect(self.play_sound)
         self.stop_button.clicked.connect(self.stop_sound)
-        
-                         
-        self.close_btn.clicked.connect(self.close)
-                                                                 
-        self.minimize_btn.clicked.connect(self.showNormal)
-        self.minimize_btn.clicked.connect(self.showMinimized)
-        
                        
         self.audio_devices.currentTextChanged.connect(self._change_output_device)
         self.audio_input_devices.currentTextChanged.connect(self._change_input_device)
@@ -1163,6 +1117,7 @@ class SoundboardWindow(QMainWindow):
         self.model.setStringList(filtered_sounds)   
 
     def reload_list(self) -> None:
+        self.hotkey_listener.start()
         self._load_sounds()
 
     def closeEvent(self, event):
@@ -1242,177 +1197,20 @@ class SoundboardWindow(QMainWindow):
             self.audio_manager.player.stop()
             self.audio_manager.player2.stop()
     
-                           
-    def mousePressEvent(self, event) -> None:
-        if event.button() == Qt.LeftButton:
-            self.old_pos = event.globalPosition().toPoint()
-            self.resize_handle = self._get_resize_handle(event.pos())
-            self.resizing = self.resize_handle is not None
-
-    def mouseMoveEvent(self, event) -> None:
-        if self.resizing and self.resize_handle and self.old_pos:
-            self._handle_resize(event)
-        elif self.old_pos and not self.resizing:
-            delta = event.globalPosition().toPoint() - self.old_pos
-            self.move(self.pos() + delta)
-            self.old_pos = event.globalPosition().toPoint()
-        
-        
-        if not self.old_pos:
-            handle = self._get_resize_handle(event.pos())
-            if handle:
-                self._set_resize_cursor(handle)
-            else:
-                self.setCursor(Qt.ArrowCursor)
-                self.frame.setCursor(Qt.ArrowCursor)
-
-    def mouseReleaseEvent(self, event) -> None:
-        self.old_pos = None
-        self.resizing = False
-        self.resize_handle = None
-        self.setCursor(Qt.ArrowCursor)
-        if hasattr(self, 'frame'):
-            self.frame.setCursor(Qt.ArrowCursor)
-        
-    def _get_resize_handle(self, pos):
-        
-        width = self.width()
-        height = self.height()
-        margin = 8  
-        
-       
-        if pos.x() <= margin and pos.y() <= margin:
-            return 'top-left'
-        elif pos.x() >= width - margin and pos.y() <= margin:
-            return 'top-right'
-        elif pos.x() <= margin and pos.y() >= height - margin:
-            return 'bottom-left'
-        elif pos.x() >= width - margin and pos.y() >= height - margin:
-            return 'bottom-right'
-        
-        elif pos.x() <= margin:
-            return 'left'
-        elif pos.x() >= width - margin:
-            return 'right'
-        elif pos.y() <= margin:
-            return 'top'
-        elif pos.y() >= height - margin:
-            return 'bottom'
-        return None
-    
-    def _set_resize_cursor(self, handle):
-        cursor_map = {
-            'top-left': Qt.SizeFDiagCursor,
-            'top-right': Qt.SizeBDiagCursor,
-            'bottom-left': Qt.SizeBDiagCursor,
-            'bottom-right': Qt.SizeFDiagCursor,
-            'left': Qt.SizeHorCursor,
-            'right': Qt.SizeHorCursor,
-            'top': Qt.SizeVerCursor,
-            'bottom': Qt.SizeVerCursor
-        }
-        cursor = cursor_map.get(handle, Qt.ArrowCursor)
-        self.setCursor(cursor)
-        if hasattr(self, 'frame'):
-            self.frame.setCursor(cursor)
-    
-    def _handle_resize(self, event):
-        
-        if not self.old_pos:
-            return
-            
-        delta = event.globalPosition().toPoint() - self.old_pos
-        current_geometry = self.geometry()
-        new_geometry = current_geometry
-        
-       
-        if self.resize_handle == 'top-left':
-            new_geometry.setTopLeft(current_geometry.topLeft() + delta)
-        elif self.resize_handle == 'top-right':
-            new_geometry.setTopRight(current_geometry.topRight() + delta)
-        elif self.resize_handle == 'bottom-left':
-            new_geometry.setBottomLeft(current_geometry.bottomLeft() + delta)
-        elif self.resize_handle == 'bottom-right':
-            new_geometry.setBottomRight(current_geometry.bottomRight() + delta)
-        elif self.resize_handle == 'left':
-            new_geometry.setLeft(current_geometry.left() + delta.x())
-        elif self.resize_handle == 'right':
-            new_geometry.setRight(current_geometry.right() + delta.x())
-        elif self.resize_handle == 'top':
-            new_geometry.setTop(current_geometry.top() + delta.y())
-        elif self.resize_handle == 'bottom':
-            new_geometry.setBottom(current_geometry.bottom() + delta.y())
-        
-       
-        new_size = new_geometry.size()
-        new_size = new_size.expandedTo(self.minimum_size)
-        new_size = new_size.boundedTo(self.maximum_size)
-   
-        if new_size != new_geometry.size():
-            if new_size.width() != new_geometry.width():
-                if self.resize_handle in ['left', 'top-left', 'bottom-left']:
-                    new_geometry.setLeft(new_geometry.right() - new_size.width())
-                else:
-                    new_geometry.setRight(new_geometry.left() + new_size.width())
-            if new_size.height() != new_geometry.height():
-                if self.resize_handle in ['top', 'top-left', 'top-right']:
-                    new_geometry.setTop(new_geometry.bottom() - new_size.height())
-                else:
-                    new_geometry.setBottom(new_geometry.top() + new_size.height())
-        
-        self.setGeometry(new_geometry)
-        self.old_pos = event.globalPosition().toPoint()
-
     def keyPressEvent(self, event) -> None:
         if event.key() == Qt.Key_Escape:
             self.close()
-
-class LoadingScreen(QSplashScreen):
-    def __init__(self, movie, parent = None):
-        
-        movie.jumpToFrame(0)
-        pixmap = QPixmap(movie.frameRect().size())
-           
-        QSplashScreen.__init__(self, pixmap)
-        self.movie = movie
-        self.movie.frameChanged.connect(self.repaint)
-        
-        self.setStyleSheet("border-radius: 10px;")
-    def showEvent(self, event):
-         self.movie.start()
-      
-    def hideEvent(self, event):
-        self.movie.stop()
-    
-    def paintEvent(self, event):
-    
-        painter = QPainter(self)
-        pixmap = self.movie.currentPixmap()
-        self.setMask(pixmap.mask())
-        painter.drawPixmap(0, 0, pixmap)
-
-    def sizeHint(self):
-    
-        return self.movie.scaledSize()
-  
-
-    @Slot()
-    def onNextFrame(self):
-        pixmap = self.movie.currentPixmap()
-        self.setPixmap(pixmap)
-        self.setMask(pixmap.mask())
 
 class SoundboardApplication:
     
     def __init__(self):
         app.setApplicationName("SoundBox by BanditRN")
-        app.setApplicationVersion("0.5.4")
+        app.setApplicationVersion("0.6.0")
         app.setWindowIcon(QIcon(ResourceManager.get_resource_path("window_icon.png")))                        
 
     def run(self) -> int:
         self.window = SoundboardWindow()
         self.window.show()
-        splash.finish(self.window)
         return app.exec()
     
 if __name__ == "__main__":
@@ -1421,24 +1219,16 @@ if __name__ == "__main__":
         global app
         app = QApplication(sys.argv)
         if lockfile.tryLock(100):
-            movie = QMovie(ResourceManager.get_resource_path("splashscreen.gif"))
-            movie.setScaledSize(QSize(400, 400))
-            movie.setCacheMode(QMovie.CacheMode.CacheAll)
 
-            global splash
-            splash = LoadingScreen(movie)
-            splash.setEnabled(False)
-            splash.show()
-            while movie.state() == QMovie.Running and movie.currentFrameNumber() < movie.frameCount() - 1:
-                app.processEvents()
             MainApp = SoundboardApplication()
             try:
                 response = requests.get("https://api.github.com/repos/BanditRN/Soundbox/releases",timeout=5)
                 latest_version = json.loads(response.text)[0]["tag_name"]
-                if latest_version != app.applicationVersion():
-                    QMessageBox.information(None, "Update Available", f"A new version of SoundBox is available: {latest_version}. You are using version {app.applicationVersion()}.")
+                if latest_version > app.applicationVersion():
+                    QMessageBox.information(None, "Update Available", f"A new version of SoundBox is available: {latest_version}. You are using version {app.applicationVersion()}.<br>Please go to <a href = 'https://github.com/BanditRN/Soundbox/releases'>Github Releases</a>")
             except requests.RequestException:
                 pass
+            app.processEvents()
             sys.exit(MainApp.run())
         else:
             QMessageBox.warning(None, "Warning", "Another instance of SoundBox is already running.")
