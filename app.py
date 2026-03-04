@@ -596,7 +596,7 @@ class SoundboardWindow(QMainWindow):
                            QPushButton{
                            background: transparent;
                            }
-                           QPushButton#reloadBtn:hover:!pressed{
+                           QPushButton#reloadBtn:hover:!pressed , QPushButton#stopkeybind_btn:hover:!pressed{
                            background-color: #363637;
                            }
                            QPushButton:hover:pressed{
@@ -682,7 +682,13 @@ class SoundboardWindow(QMainWindow):
             return
         self._play_sound_by_name(action_name)
 
-
+    def Listener_timer(self):
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.restart_listener)
+        self.timer.start(30000)
+    def restart_listener(self):
+        self.hotkey_listener.start()
+        self.timer.start(30000)
     @Slot(str)
     def _update_keybind_dialog(self, combo: str):
         if self.keybind_dialog and self.keybind_dialog.isVisible():
@@ -757,6 +763,7 @@ class SoundboardWindow(QMainWindow):
         self.reload_button.setObjectName("reloadBtn")
         self.stop_button = self._create_icon_button("stop.webp", (70, 50), (50, 50))
         self.stopkeybind_btn = self._create_icon_button("stop_keybind.png",(30, 30), (20, 20))
+        self.stopkeybind_btn.setObjectName("stopkeybind_btn")
         self.stopkeybind_btn.setToolTip("Set keybind for Stop action")
 
     def _create_volume_controls(self) -> None:
@@ -777,10 +784,7 @@ class SoundboardWindow(QMainWindow):
         self.audio_devices = QComboBox()
         self.audio_devices.setObjectName("audio_devices")
                                                                  
-   
-    
-                                                                                        
-       
+
         devices = [dev.description() for dev in self.audio_manager.get_audio_output_devices()]
         self.audio_devices.addItems(devices)
         self.audio_devices.setCurrentText(self.settings_manager.get("DefaultOutput", ""))
@@ -789,10 +793,7 @@ class SoundboardWindow(QMainWindow):
         self.audio_input_devices = QComboBox()
         self.audio_input_devices.setObjectName("audio_input_devices")
                                                                        
-   
-    
-                                                                                        
-       
+
         input_devices = [dev.description() for dev in self.audio_manager.get_audio_input_devices()]
         self.audio_input_devices.addItems(input_devices)
         self.audio_input_devices.setCurrentText(self.settings_manager.get("DefaultInput", ""))
@@ -1015,7 +1016,6 @@ class SoundboardWindow(QMainWindow):
         
     def ms_to_hms(self, ms_str):
         ms = int(re.match(r'^(\d+)$', ms_str).group(1))
-        hours = ms // (1000 * 60 * 60)
         minutes = (ms // (1000 * 60)) % 60
         seconds = (ms // 1000) % 60
         return f"{minutes:02d}:{seconds:02d}"
@@ -1196,6 +1196,7 @@ class SoundboardWindow(QMainWindow):
                            QMediaPlayer.PlaybackState.PausedState]:
             self.audio_manager.player.stop()
             self.audio_manager.player2.stop()
+            self.end_label.setText("00:00")
     
     def keyPressEvent(self, event) -> None:
         if event.key() == Qt.Key_Escape:
