@@ -690,7 +690,6 @@ class SoundboardWindow(QMainWindow):
     def restart_listener(self):
         self.hotkey_listener.start()
         self.timer.start(30000)
-        print("timer restarted")
     @Slot(str)
     def _update_keybind_dialog(self, combo: str):
         if self.keybind_dialog and self.keybind_dialog.isVisible():
