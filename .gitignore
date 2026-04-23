@@ -2,3 +2,8 @@ test.py
 output
 cleanup_comments.py
 __pycache__
+build
+dist
+CHANGELOG.md
+SoundBox.spec
+TODO.md

@@ -2,3 +2,6 @@ PySide6
 keyboard
 pyqt_loading_button
 winaccent
+numpy
+requests
+pyinstaller

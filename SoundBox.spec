@@ -1,19 +1,44 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
 
+project_root = os.path.abspath(SPECPATH)
+resources_dir = os.path.join(project_root, 'resources')
+
+resource_files = []
+if os.path.isdir(resources_dir):
+    for fname in os.listdir(resources_dir):
+        full = os.path.join(resources_dir, fname)
+        if os.path.isfile(full):
+            resource_files.append((full, '.'))
 
 a = Analysis(
-    ['D:\\Git Soundbox\\Soundbox-1\\app.py'],
-    pathex=[],
+    ['main.py'],
+    pathex=[project_root],
     binaries=[],
-    datas=[('D:\\Git Soundbox\\Soundbox-1\\close.png', '.'), ('D:\\Git Soundbox\\Soundbox-1\\down.png', '.'), ('D:\\Git Soundbox\\Soundbox-1\\minimize.png', '.'), ('D:\\Git Soundbox\\Soundbox-1\\pause.png', '.'), ('D:\\Git Soundbox\\Soundbox-1\\play.png', '.'), ('D:\\Git Soundbox\\Soundbox-1\\reload.png', '.'), ('D:\\Git Soundbox\\Soundbox-1\\splashscreen.gif', '.'), ('D:\\Git Soundbox\\Soundbox-1\\stop.webp', '.'), ('D:\\Git Soundbox\\Soundbox-1\\window_icon.png', '.')],
-    hiddenimports=[],
+    datas=resource_files,
+    hiddenimports=[
+        'PySide6.QtMultimedia',
+        'PySide6.QtMultimediaWidgets',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        'tkinter',
+        'unittest',
+        'pydoc',
+        'doctest',
+        'PySide6.QtQml',
+        'PySide6.QtQuick',
+        'PySide6.QtWebEngineCore',
+        'PySide6.QtWebEngineWidgets',
+        'PySide6.Qt3DCore',
+        'PySide6.Qt3DRender',
+    ],
     noarchive=False,
     optimize=2,
 )
+
 pyz = PYZ(a.pure)
 
 exe = EXE(
@@ -21,7 +46,7 @@ exe = EXE(
     a.scripts,
     a.binaries,
     a.datas,
-    [('O', None, 'OPTION'), ('O', None, 'OPTION')],
+    [],
     name='SoundBox',
     debug=False,
     bootloader_ignore_signals=False,
@@ -35,6 +60,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['D:\\Git Soundbox\\Soundbox-1\\window_icon.ico'],
+    icon=os.path.join(resources_dir, 'window_icon.ico'),
     hide_console='hide-early',
 )
