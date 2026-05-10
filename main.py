@@ -134,8 +134,6 @@ class SoundboardWindow(QMainWindow):
                             }
                            """)
 
-        self.minimize_animation = None
-
         QMetaObject.invokeMethod(
             self, "_start_hotkey_listener", Qt.QueuedConnection)
         
